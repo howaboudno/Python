@@ -1,6 +1,14 @@
-from backend.routers import login, register
 from fastapi import FastAPI
-
+from backend.routers.auth import register, login
+from backend.routers.tournament import GET as tournament_GET, POST as tournament_POST
+from backend.routers.predictions import GET as predictions_GET, POST as predictions_POST
+from backend.routers.scoreboard import GET as scoreboard_GET
 app = FastAPI()
+
 app.include_router(register.router)
 app.include_router(login.router)
+app.include_router(tournament_GET.router)
+app.include_router(tournament_POST.router)
+app.include_router(predictions_GET.router)
+app.include_router(predictions_POST.router)
+app.include_router(scoreboard_GET.router)

@@ -19,6 +19,8 @@ class Tournament(Base):
     tournament_type = Column(String(50), nullable=False)
     year = Column(Integer, nullable=False)
     is_active = Column(Boolean, default=True)
+    winner = Column(String(100),nullable=True)
+    top_scorer = Column(String(100),nullable=True)
 
 class Fixture(Base):
     __tablename__ = 'fixtures'
@@ -62,6 +64,16 @@ class GroupPrediction(Base):
     first_place = Column(String(50), nullable=False)
     second_place = Column(String(50), nullable=False)
     third_place = Column(String(50), nullable=False)
+    
+class GroupResults(Base):
+    __tablename__ = 'group_results'
+    id = Column(Integer, primary_key=True)
+    tournament_id = Column(Integer, ForeignKey('tournaments.id'), nullable=False)
+    group = Column(String(50), nullable=False)
+    first_place = Column(String(50), nullable=False)
+    second_place = Column(String(50), nullable=False)
+    third_place = Column(String(50), nullable=False)
+
 
 class BonusPredictions(Base):
     __tablename__ = 'bonus_predictions'
@@ -70,4 +82,4 @@ class BonusPredictions(Base):
     tournament_id = Column(Integer, ForeignKey('tournaments.id'), nullable=False)
     predicted_winner = Column(String(50), nullable=False)
     predicted_top_scorer = Column(String(50), nullable=False)
-
+    
