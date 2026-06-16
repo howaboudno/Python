@@ -15,7 +15,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "null",
-        "https://python-production-c646.up.railway.app"
+        "https://python-production-c646.up.railway.app",
+        "https://predictionsapp.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
