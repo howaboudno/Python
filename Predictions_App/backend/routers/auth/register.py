@@ -1,5 +1,5 @@
 #Imports
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from backend.models.models import User
 from backend.core.security import hash_password
 from backend.core.database import get_db
@@ -13,7 +13,12 @@ router = APIRouter()
 
 #Define the register function
 def register(user: UserRegister, db: Session = Depends(get_db)):
-    #Hash password#
+    #Check if user already exists
+    existing = db.query(User).filter(User.username == user.username).first()
+    if existing:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                                detail="User already exists, contact admin for details or in  case of forgotton password")
+
     hashed_password = hash_password(user.password)
 
     #Store user in database
@@ -21,6 +26,6 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
             username=user.username,
             hashed_password=hashed_password))
     db.commit()
-    
+
     #Return success message
     return {"message": "User registered successfully"}

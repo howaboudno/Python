@@ -1,12 +1,33 @@
+// src/App.jsx
 import { Routes, Route } from 'react-router-dom'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Scoreboard from './pages/Scoreboard'
+import Fixtures from './pages/Fixtures'
+import GroupPredictions from './pages/GroupPredictions'
+import BonusPredictions from './pages/BonusPredictions'
+import ProtectedRoute from './utils/ProtectedRoute'
+import Navbar from './navbar'
 
 function App() {
-  return(
-    <Routes>
-      <Route path= "/" element={<div>Dashboard</div>} />
-      <Route path= "/login" element={<div>Login</div>} />
-      <Route path= "/register" element={<div>Register</div>} />
-    </Routes>
+  return (
+    <>
+      <Navbar />
+      <div className="main-content">
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Protected routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Scoreboard />} />
+            <Route path="/predictions" element={<Fixtures />} />
+            <Route path="/groups" element={<GroupPredictions />} />
+            <Route path="/bonus" element={<BonusPredictions />} />
+          </Route>
+        </Routes>
+      </div>
+    </>
   )
 }
 
