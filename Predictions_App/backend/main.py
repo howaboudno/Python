@@ -5,6 +5,8 @@ from routers.scoreboard import GET as scoreboard_GET
 from routers.auth import change_password
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
+import shutil
+from fastapi import UploadFile, File
 
 app = FastAPI()
 
@@ -28,3 +30,9 @@ app.include_router(predictions_GET.router)
 app.include_router(predictions_POST.router)
 app.include_router(scoreboard_GET.router)
 app.include_router(change_password.router)
+
+@app.post("/admin/upload-db")
+async def upload_db(file: UploadFile = File(...)):
+    with open("/data/predictions.db", "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    return {"message": "Database uploaded"}
