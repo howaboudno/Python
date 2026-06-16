@@ -4,6 +4,7 @@ from routers.predictions import GET as predictions_GET, POST as predictions_POST
 from routers.scoreboard import GET as scoreboard_GET
 from routers.auth import change_password
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
 
 app = FastAPI()
 
