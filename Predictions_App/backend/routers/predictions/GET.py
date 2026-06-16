@@ -2,9 +2,9 @@
 
 #Imports
 from fastapi import APIRouter, Depends
-from backend.models.models import User, FixturePrediction, GroupPrediction, BonusPredictions
-from backend.core.security import get_current_user
-from backend.core.database import get_db
+from models.models import User, FixturePrediction, GroupPrediction, BonusPredictions
+from core.security import get_current_user
+from core.database import get_db
 from sqlalchemy.orm import Session
 
 #Router

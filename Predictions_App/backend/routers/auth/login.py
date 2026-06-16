@@ -1,10 +1,10 @@
 #Imports
 from fastapi import APIRouter, Depends
-from backend.models.models import User
-from backend.core.security import verify_password, create_access_token
-from backend.core.database import get_db
+from models.models import User
+from core.security import verify_password, create_access_token
+from core.database import get_db
 from sqlalchemy.orm import Session
-from backend.schemas.user import UserLogin
+from schemas.user import UserLogin
 
 #Router
 router = APIRouter()

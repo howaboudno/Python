@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.core.database import get_db
-from backend.models.models import User, Tournament
-from backend.services.scoring import calculate_total
+from core.database import get_db
+from models.models import User, Tournament
+from services.scoring import calculate_total
 
 router = APIRouter()
 

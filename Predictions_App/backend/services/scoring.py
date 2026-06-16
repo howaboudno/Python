@@ -1,6 +1,6 @@
 #Imports
 from sqlalchemy.orm import Session
-from backend.models.models import FixturePrediction, Results, Fixture, GroupPrediction, GroupResults, BonusPredictions, Tournament, FixturePrediction
+from models.models import FixturePrediction, Results, Fixture, GroupPrediction, GroupResults, BonusPredictions, Tournament, FixturePrediction
 #==Dictionaries==#
 
 GROUP_STAGE_POINTS = {

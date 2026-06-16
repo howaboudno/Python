@@ -1,8 +1,8 @@
 #Imports
 from fastapi import APIRouter, Depends, HTTPException, status
-from backend.models.models import User, Tournament, Fixture
-from backend.core.security import get_current_user
-from backend.core.database import get_db
+from models.models import User, Tournament, Fixture
+from core.security import get_current_user
+from core.database import get_db
 from sqlalchemy.orm import Session
 
 #Router

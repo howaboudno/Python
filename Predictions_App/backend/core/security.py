@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 from fastapi import HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
-from backend.core.database import get_db
+from core.database import get_db
 from sqlalchemy.orm import Session
-from backend.models.models import User
+from models.models import User
 from dotenv import load_dotenv
 import os
 load_dotenv()

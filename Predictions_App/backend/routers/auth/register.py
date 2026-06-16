@@ -1,10 +1,10 @@
 #Imports
 from fastapi import APIRouter, Depends, HTTPException, status
-from backend.models.models import User
-from backend.core.security import hash_password
-from backend.core.database import get_db
+from models.models import User
+from core.security import hash_password
+from core.database import get_db
 from sqlalchemy.orm import Session
-from backend.schemas.user import UserRegister
+from schemas.user import UserRegister
 
 #Router
 router = APIRouter()

@@ -1,14 +1,14 @@
 #Imports
 from fastapi import APIRouter, Depends, HTTPException, status
-from backend.models.models import User, Tournament, Fixture, Results
-from backend.core.security import get_current_user
-from backend.core.database import get_db
-from backend.schemas.tournament import TournamentCreate
-from backend.schemas.fixture import FixtureCreate, FixtureUpdate
-from backend.schemas.result import ResultCreate
+from models.models import User, Tournament, Fixture, Results
+from core.security import get_current_user
+from core.database import get_db
+from schemas.tournament import TournamentCreate
+from schemas.fixture import FixtureCreate, FixtureUpdate
+from schemas.result import ResultCreate
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
-from backend.services.scoring import calculate_total
+from services.scoring import calculate_total
 
 #Router
 router = APIRouter()

@@ -2,10 +2,10 @@
 
 #Imports
 from fastapi import APIRouter, Depends, HTTPException, status
-from backend.models.models import User, Fixture, FixturePrediction, GroupPrediction, BonusPredictions
-from backend.core.security import get_current_user
-from backend.core.database import get_db
-from backend.schemas.prediction import FixturePredictionCreate, GroupPredictionCreate, BonusPredictionCreate
+from models.models import User, Fixture, FixturePrediction, GroupPrediction, BonusPredictions
+from core.security import get_current_user
+from core.database import get_db
+from schemas.prediction import FixturePredictionCreate, GroupPredictionCreate, BonusPredictionCreate
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 

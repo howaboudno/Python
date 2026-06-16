@@ -1,7 +1,7 @@
 #==Create Base Model==#
 from sqlalchemy import Column, DateTime, Integer, String, Boolean, ForeignKey
 
-from backend.core.database import Base
+from core.database import Base
 
 #==Define User Model==#
 class User(Base):
