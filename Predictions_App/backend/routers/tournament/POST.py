@@ -85,9 +85,7 @@ def update_fixture(
 
     # Enforce kickoff lock
     if fixture.fixture_time.replace(tzinfo=timezone.utc) <= datetime.now(timezone.utc):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot update a fixture after kickoff")
+        return "You're about to update a match that has already kicked off."
 
     if updates.team_1 is not None:
         fixture.team_1 = updates.team_1
@@ -121,12 +119,20 @@ def create_result(
     if not fixture:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fixture not found")
 
-    db_result = Results(
-        fixture_id=fixture_id,
-        score_1=result.score_1,
-        score_2=result.score_2,
-        pen_score_1=result.pen_score_1,
-        pen_score_2=result.pen_score_2
+    existing = db.query(Results).filter(Results.fixture_id == fixture_id).first()
+
+    if existing:
+        existing.score_1 = result.score_1
+        existing.score_2 = result.score_2
+        existing.pen_score_1 = result.pen_score_1
+        existing.pen_score_2 = result.pen_score_2
+    else:
+        db_result = Results(
+            fixture_id=fixture_id,
+            score_1=result.score_1,
+            score_2=result.score_2,
+            pen_score_1=result.pen_score_1,
+            pen_score_2=result.pen_score_2
     )
     db.add(db_result)
     db.commit()

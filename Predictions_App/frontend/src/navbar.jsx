@@ -22,6 +22,7 @@ function Navbar() {
         <Link to="/predictions">Predictions</Link>
         <Link to="/groups">Groups</Link>
         <Link to="/bonus">Champion & Top Scorer</Link>
+        <Link to="/profile">Profile</Link>
         <button onClick={handleLogout} className="logout-btn">Log out</button>
       </div>
     </nav>

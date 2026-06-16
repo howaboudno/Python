@@ -5,6 +5,7 @@ import { API_URL } from '../api'
 
 const TOURNAMENT_ID = 1
 const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']
+const TOURNAMENT_START = new Date('2026-06-11T19:00:00Z')
 
 function GroupPredictions() {
   const { authToken } = useContext(AuthContext)
@@ -12,6 +13,7 @@ function GroupPredictions() {
   const [groupPreds, setGroupPreds] = useState({})
   const [saved, setSaved] = useState({})
   const [loading, setLoading] = useState(true)
+  const isLocked = new Date() > TOURNAMENT_START
 
   useEffect(() => {
     fetch(`${API_URL}/tournaments/${TOURNAMENT_ID}/fixtures`, {
@@ -31,8 +33,13 @@ function GroupPredictions() {
         const predMap = {}
         const savedMap = {}
         ;(data.group_predictions || []).forEach(p => {
-          predMap[p.group] = { first: p.first, second: p.second, third: p.third }
-          savedMap[p.group] = true
+          // API returns group_id, first_place, second_place, third_place
+          predMap[p.group_id] = {
+            first: p.first_place,
+            second: p.second_place,
+            third: p.third_place
+          }
+          savedMap[p.group_id] = true
         })
         setGroupPreds(predMap)
         setSaved(savedMap)
@@ -54,6 +61,7 @@ function GroupPredictions() {
       ...prev,
       [group]: { ...prev[group], [place]: value }
     }))
+    setSaved(prev => ({ ...prev, [group]: false }))
   }
 
   function handleSave(group) {
@@ -82,6 +90,11 @@ function GroupPredictions() {
     <div className="page">
       <h1>🗂 Group Predictions</h1>
       <p className="subtitle">Predict the top 3 teams in each group. 4th place is derived automatically.</p>
+      {isLocked && (
+        <p style={{ color: '#888', fontSize: '0.85rem', marginBottom: '16px' }}>
+          🔒 Group predictions are locked — tournament has started.
+        </p>
+      )}
       <div className="groups-grid">
         {GROUPS.map(group => {
           const teams = getTeamsForGroup(group)
@@ -89,13 +102,14 @@ function GroupPredictions() {
           const isSaved = saved[group]
 
           return (
-            <div key={group} className={`group-card ${isSaved ? 'saved' : ''}`}>
+            <div key={group} className={`group-card ${isSaved ? 'saved' : ''} ${isLocked ? 'locked' : ''}`}>
               <h3>Group {group}</h3>
               {['first', 'second', 'third'].map((place, i) => (
                 <div key={place} className="group-select-row">
                   <label>{i + 1}{i === 0 ? 'st' : i === 1 ? 'nd' : 'rd'}</label>
                   <select
                     value={p[place] || ''}
+                    disabled={isLocked}
                     onChange={e => handleChange(group, place, e.target.value)}
                   >
                     <option value="">Select team</option>
@@ -105,12 +119,17 @@ function GroupPredictions() {
                   </select>
                 </div>
               ))}
-              <button
-                onClick={() => handleSave(group)}
-                className={isSaved ? 'btn-saved' : 'btn-save'}
-              >
-                {isSaved ? '✓ Saved' : 'Save'}
-              </button>
+              {!isLocked && (
+                <button
+                  onClick={() => handleSave(group)}
+                  className={isSaved ? 'btn-saved' : 'btn-save'}
+                >
+                  {isSaved ? '✓ Saved' : 'Save'}
+                </button>
+              )}
+              {isLocked && isSaved && (
+                <p style={{ color: '#4caf50', fontSize: '0.78rem', marginTop: '8px' }}>✓ Saved</p>
+              )}
             </div>
           )
         })}

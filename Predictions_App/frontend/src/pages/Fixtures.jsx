@@ -5,6 +5,20 @@ import { API_URL } from '../api'
 
 const TOURNAMENT_ID = 1
 
+function NumInput({ value, onChange, disabled, placeholder }) {
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      value={value}
+      disabled={disabled}
+      placeholder={placeholder ?? '0'}
+      onChange={e => onChange(e.target.value.replace(/[^0-9]/g, ''))}
+    />
+  )
+}
+
 function Fixtures() {
   const { authToken } = useContext(AuthContext)
   const [fixtures, setFixtures] = useState([])
@@ -13,7 +27,6 @@ function Fixtures() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Fetch fixtures
     fetch(`${API_URL}/tournaments/${TOURNAMENT_ID}/fixtures`, {
       headers: { Authorization: `Bearer ${authToken}` }
     })
@@ -23,7 +36,6 @@ function Fixtures() {
         setLoading(false)
       })
 
-    // Fetch existing predictions and pre-fill
     fetch(`${API_URL}/predictions/me/${TOURNAMENT_ID}`, {
       headers: { Authorization: `Bearer ${authToken}` }
     })
@@ -33,10 +45,10 @@ function Fixtures() {
         const savedMap = {}
         ;(data.fixture_predictions || []).forEach(p => {
           predMap[p.fixture_id] = {
-            score1: p.predicted_score_1,
-            score2: p.predicted_score_2,
-            pen1: p.predicted_pen_score_1 ?? '',
-            pen2: p.predicted_pen_score_2 ?? ''
+            score1: String(p.predicted_score_1 ?? ''),
+            score2: String(p.predicted_score_2 ?? ''),
+            pen1: p.predicted_pen_score_1 != null ? String(p.predicted_pen_score_1) : '',
+            pen2: p.predicted_pen_score_2 != null ? String(p.predicted_pen_score_2) : ''
           }
           savedMap[p.fixture_id] = true
         })
@@ -54,6 +66,7 @@ function Fixtures() {
       ...prev,
       [fixtureId]: { ...prev[fixtureId], [field]: value }
     }))
+    setSaved(prev => ({ ...prev, [fixtureId]: false }))
   }
 
   function handleSave(fixtureId) {
@@ -76,9 +89,9 @@ function Fixtures() {
     })
       .then(res => res.json())
       .then(() => setSaved(prev => ({ ...prev, [fixtureId]: true })))
+      .catch(err => console.error('Error saving prediction:', err))
   }
 
-  // Group fixtures by stage then group
   const grouped = fixtures.reduce((acc, f) => {
     const key = f.stage === 'Group' ? `Group ${f.group}` : f.stage
     if (!acc[key]) acc[key] = []
@@ -95,31 +108,27 @@ function Fixtures() {
         <div key={section} className="fixture-section">
           <h2>{section}</h2>
           {sectionFixtures.map(fixture => {
+            const fid = fixture.id
             const locked = isLocked(fixture.fixture_time)
-            const p = predictions[fixture.fixture_id] || {}
-            const isDraw = p.score1 !== undefined && p.score2 !== undefined &&
-              String(p.score1) === String(p.score2) && p.score1 !== ''
-            const isSaved = saved[fixture.fixture_id]
+            const p = predictions[fid] || {}
+            const isDraw = p.score1 !== '' && p.score2 !== '' && p.score1 === p.score2
+            const isSaved = saved[fid]
 
             return (
-              <div key={fixture.id} className={`fixture-card ${isSaved ? 'saved' : ''} ${locked ? 'locked' : ''}`}>
+              <div key={fid} className={`fixture-card ${isSaved ? 'saved' : ''} ${locked ? 'locked' : ''}`}>
                 <div className="fixture-teams">
                   <span className="team">{fixture.team_1}</span>
                   <div className="score-inputs">
-                    <input
-                      type="number"
-                      min="0"
+                    <NumInput
                       value={p.score1 ?? ''}
                       disabled={locked}
-                      onChange={e => handleChange(fixture.id, 'score1', e.target.value)}
+                      onChange={val => handleChange(fid, 'score1', val)}
                     />
                     <span>-</span>
-                    <input
-                      type="number"
-                      min="0"
+                    <NumInput
                       value={p.score2 ?? ''}
                       disabled={locked}
-                      onChange={e => handleChange(fixture.id, 'score2', e.target.value)}
+                      onChange={val => handleChange(fid, 'score2', val)}
                     />
                   </div>
                   <span className="team">{fixture.team_2}</span>
@@ -128,20 +137,16 @@ function Fixtures() {
                 {isDraw && !locked && (
                   <div className="penalty-inputs">
                     <span>Penalties:</span>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="PK"
+                    <NumInput
                       value={p.pen1 ?? ''}
-                      onChange={e => handleChange(fixture.id, 'pen1', e.target.value)}
+                      placeholder="PK"
+                      onChange={val => handleChange(fid, 'pen1', val)}
                     />
                     <span>-</span>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="PK"
+                    <NumInput
                       value={p.pen2 ?? ''}
-                      onChange={e => handleChange(fixture.id, 'pen2', e.target.value)}
+                      placeholder="PK"
+                      onChange={val => handleChange(fid, 'pen2', val)}
                     />
                   </div>
                 )}
@@ -150,7 +155,7 @@ function Fixtures() {
                   <span className="kickoff">{new Date(fixture.fixture_time).toLocaleString()}</span>
                   {locked
                     ? <span className="locked-label">🔒 Locked</span>
-                    : <button onClick={() => handleSave(fixture.id)} className={isSaved ? 'btn-saved' : 'btn-save'}>
+                    : <button onClick={() => handleSave(fid)} className={isSaved ? 'btn-saved' : 'btn-save'}>
                         {isSaved ? '✓ Saved' : 'Save'}
                       </button>
                   }

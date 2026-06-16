@@ -347,3 +347,9 @@ body {
   .groups-grid { grid-template-columns: 1fr 1fr; }
   .breakdown { flex-direction: column; gap: 6px; }
 }
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

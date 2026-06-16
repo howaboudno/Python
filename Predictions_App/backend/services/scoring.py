@@ -80,7 +80,7 @@ def score_group_rankings(
         GroupResults.tournament_id == tournament_id,
     ).all()
     for prediction in predictions:
-        result = next((x for x in results if x.group == prediction.group), None)
+        result = next((x for x in results if x.group_id == prediction.group_id), None)
         if result is None:
             continue
         if prediction.first_place == result.first_place:
@@ -139,9 +139,9 @@ def calculate_total(
             Fixture.id == fixture.fixture_id
         ).first()
         if fixture_data.stage == "Group":
-            fixture_points = score_group_match(fixture, result)
+            fixture_points += score_group_match(fixture, result)
         elif fixture_data.stage != "Group":
-            fixture_points = score_ko_match(fixture, result, fixture_data)
+            fixture_points += score_ko_match(fixture, result, fixture_data)
     #Add bonus points
     ranking_points = score_group_rankings(user_id, tournament_id, db)
     bonus_points = score_bonus(user_id, tournament_id, db)

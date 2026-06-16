@@ -60,7 +60,7 @@ class GroupPrediction(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     tournament_id = Column(Integer, ForeignKey('tournaments.id'), nullable=False)
-    group_id = Column(String(50), ForeignKey('fixtures.group'), nullable=False)
+    group_id = Column(String(50), nullable=False)
     first_place = Column(String(50), nullable=False)
     second_place = Column(String(50), nullable=False)
     third_place = Column(String(50), nullable=False)
@@ -69,7 +69,7 @@ class GroupResults(Base):
     __tablename__ = 'group_results'
     id = Column(Integer, primary_key=True)
     tournament_id = Column(Integer, ForeignKey('tournaments.id'), nullable=False)
-    group = Column(String(50), nullable=False)
+    group_id = Column(String(50), nullable=False)
     first_place = Column(String(50), nullable=False)
     second_place = Column(String(50), nullable=False)
     third_place = Column(String(50), nullable=False)

@@ -4,12 +4,13 @@ from backend.routers.tournament import GET as tournament_GET, POST as tournament
 from backend.routers.predictions import GET as predictions_GET, POST as predictions_POST
 from backend.routers.scoreboard import GET as scoreboard_GET
 from fastapi.middleware.cors import CORSMiddleware
+from backend.routers.auth import change_password
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "null"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -22,3 +23,4 @@ app.include_router(tournament_POST.router)
 app.include_router(predictions_GET.router)
 app.include_router(predictions_POST.router)
 app.include_router(scoreboard_GET.router)
+app.include_router(change_password.router)

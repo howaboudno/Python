@@ -49,3 +49,10 @@ def get_fixture_by_id(tournament_id: int, fixture_id: int, db: Session = Depends
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Fixture not found")
     return fixture
+
+@router.get("/tournaments/{tournament_id}/fixtures/{fixture_id}/result")
+def get_result(tournament_id: int, fixture_id: int, db: Session = Depends(get_db)):
+    result = db.query(Results).filter(Results.fixture_id == fixture_id).first()
+    if not result:
+        raise HTTPException(status_code=404, detail="No result found")
+    return result

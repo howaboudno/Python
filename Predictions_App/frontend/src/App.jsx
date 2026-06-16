@@ -8,6 +8,7 @@ import GroupPredictions from './pages/GroupPredictions'
 import BonusPredictions from './pages/BonusPredictions'
 import ProtectedRoute from './utils/ProtectedRoute'
 import Navbar from './navbar'
+import Profile from './pages/Profile'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
 
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
+            <Route path="/profile" element={<Profile />} />
             <Route path="/" element={<Scoreboard />} />
             <Route path="/predictions" element={<Fixtures />} />
             <Route path="/groups" element={<GroupPredictions />} />
