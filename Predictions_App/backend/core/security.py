@@ -7,9 +7,13 @@ from passlib.context import CryptContext
 from backend.core.database import get_db
 from sqlalchemy.orm import Session
 from backend.models.models import User
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
 
 #Variables (Change to generated secret key in production)
-SECRET_KEY = 'Exf9LVYZ8LiraXvnn7cCHYjYrTQjJcjB8TscnDnQeEI'
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
