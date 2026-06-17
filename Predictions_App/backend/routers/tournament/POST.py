@@ -126,6 +126,8 @@ def create_result(
         existing.score_2 = result.score_2
         existing.pen_score_1 = result.pen_score_1
         existing.pen_score_2 = result.pen_score_2
+        db.commit()
+        db_result = existing
     else:
         db_result = Results(
             fixture_id=fixture_id,
@@ -133,11 +135,13 @@ def create_result(
             score_2=result.score_2,
             pen_score_1=result.pen_score_1,
             pen_score_2=result.pen_score_2
-    )
-    db.add(db_result)
-    db.commit()
-    db.refresh(db_result)
+        )
+        db.add(db_result)
+        db.commit()
+        db.refresh(db_result)
+
     users = db.query(User).all()
     for user in users:
-        calculate_total(user.id, tournament_id,db)  
+        calculate_total(user.id, tournament_id, db)
+
     return db_result
