@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import shutil
 from fastapi import UploadFile, File
+from fastapi.responses import FileResponse
 
 app = FastAPI()
 
@@ -37,3 +38,7 @@ async def upload_db(file: UploadFile = File(...)):
     with open("/data/predictions.db", "wb") as f:
         shutil.copyfileobj(file.file, f)
     return {"message": "Database uploaded"}
+
+@app.get("/admin/download-db")
+def download_db():
+    return FileResponse("/data/predictions.db", filename="predictions.db")
