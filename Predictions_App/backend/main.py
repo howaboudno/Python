@@ -42,3 +42,22 @@ async def upload_db(file: UploadFile = File(...)):
 @app.get("/admin/download-db")
 def download_db():
     return FileResponse("/data/predictions.db", filename="predictions.db")
+
+@app.post("/admin/dedupe-predictions")
+def dedupe_predictions():
+    from core.database import SessionLocal
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db.execute(text("""
+            DELETE FROM fixture_predictions
+            WHERE id NOT IN (
+                SELECT MIN(id)
+                FROM fixture_predictions
+                GROUP BY user_id, fixture_id
+            )
+        """))
+        db.commit()
+        return {"message": "Deduped"}
+    finally:
+        db.close()
