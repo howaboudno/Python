@@ -1,6 +1,6 @@
 #Imports
 from fastapi import APIRouter, Depends, HTTPException, status
-from models.models import User, Tournament, Fixture
+from models.models import User, Tournament, Fixture, Results
 from core.security import get_current_user
 from core.database import get_db
 from sqlalchemy.orm import Session
