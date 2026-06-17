@@ -61,3 +61,22 @@ def dedupe_predictions():
         return {"message": "Deduped"}
     finally:
         db.close()
+        
+@app.post("/admin/dedupe-results")
+def dedupe_predictions():
+    from core.database import SessionLocal
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        db.execute(text("""
+            DELETE FROM results
+            WHERE id NOT IN (
+                SELECT MIN(id)
+                FROM results
+                GROUP BY fixture_id
+            )
+        """))
+        db.commit()
+        return {"message": "Deduped"}
+    finally:
+        db.close()
