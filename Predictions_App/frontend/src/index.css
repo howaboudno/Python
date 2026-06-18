@@ -175,71 +175,88 @@ body {
 .breakdown strong { color: var(--text); }
 
 /* ── Fixture cards ── */
-.fixture-section { margin-bottom: 32px; }
-.fixture-section h2 { font-size: 1rem; color: var(--accent-light); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.fixture-section { margin-bottom: 16px; }
 
 .fixture-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  margin-bottom: 8px;
+  border-radius: 6px;
+  padding: 7px 12px;
+  margin-bottom: 4px;
   transition: border-color 0.15s;
 }
 
 .fixture-card.saved { border-color: var(--green); }
-.fixture-card.locked { opacity: 0.6; }
+.fixture-card.locked { opacity: 0.55; }
 
 .fixture-teams {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 8px;
 }
 
-.team { flex: 1; font-weight: 600; font-size: 0.95rem; }
+.team {
+  flex: 1;
+  font-weight: 500;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .team:last-child { text-align: right; }
 
 .score-inputs {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
-.score-inputs input, .penalty-inputs input {
-  width: 48px;
-  padding: 6px;
+.score-inputs input {
+  width: 38px;
+  padding: 4px;
   text-align: center;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text);
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
-.score-inputs input:focus, .penalty-inputs input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
+.score-inputs input:focus { outline: none; border-color: var(--accent); }
 
 .penalty-inputs {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
+  gap: 4px;
+  font-size: 0.78rem;
   color: var(--text-muted);
-  margin-bottom: 8px;
+  margin-top: 4px;
+  padding-left: 2px;
 }
+
+.penalty-inputs input {
+  width: 38px;
+  padding: 3px;
+  text-align: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.penalty-inputs input:focus { outline: none; border-color: var(--accent); }
 
 .fixture-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: 4px;
 }
 
-.kickoff { font-size: 0.8rem; color: var(--text-muted); }
+.kickoff { font-size: 0.75rem; color: var(--text-muted); }
 
-.locked-label { font-size: 0.8rem; color: var(--text-muted); }
+.locked-label { font-size: 0.75rem; color: var(--text-muted); }
 
 /* ── Groups grid ── */
 .groups-grid {
@@ -303,7 +320,7 @@ body {
 
 .bonus-row label { font-size: 0.85rem; color: var(--text-muted); }
 
-.bonus-row input {
+.bonus-row input, .bonus-row select {
   padding: 10px 12px;
   background: var(--surface2);
   border: 1px solid var(--border);
@@ -312,30 +329,30 @@ body {
   font-size: 0.95rem;
 }
 
-.bonus-row input:focus { outline: none; border-color: var(--accent); }
+.bonus-row input:focus, .bonus-row select:focus { outline: none; border-color: var(--accent); }
 
 /* ── Buttons ── */
 .btn-save {
-  padding: 6px 16px;
+  padding: 4px 12px;
   background: var(--accent);
   color: white;
   border: none;
-  border-radius: var(--radius);
+  border-radius: 5px;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   transition: background 0.15s;
 }
 
 .btn-save:hover { background: var(--accent-light); }
 
 .btn-saved {
-  padding: 6px 16px;
+  padding: 4px 12px;
   background: transparent;
   color: var(--green);
   border: 1px solid var(--green);
-  border-radius: var(--radius);
+  border-radius: 5px;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 /* ── Responsive ── */
