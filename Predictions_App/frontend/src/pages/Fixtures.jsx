@@ -5,6 +5,10 @@ import { API_URL } from '../api'
 
 const TOURNAMENT_ID = 1
 
+<<<<<<< HEAD
+=======
+const STAGE_ORDER = ['Group', 'R32', 'R16', 'QF', 'SF', 'F']
+>>>>>>> 679a57fbc604d293f458ef683d70d0f5d4c8738f
 const STAGE_LABELS = { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-finals', SF: 'Semi-finals', F: 'Final' }
 
 function NumInput({ value, onChange, disabled, placeholder }) {
@@ -28,8 +32,11 @@ function Fixtures() {
   const [saved, setSaved] = useState({})
   const [loading, setLoading] = useState(true)
   const [showGroups, setShowGroups] = useState(true)
+<<<<<<< HEAD
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState(null) // 'success' | 'error' | null
+=======
+>>>>>>> 679a57fbc604d293f458ef683d70d0f5d4c8738f
 
   useEffect(() => {
     fetch(`${API_URL}/tournaments/${TOURNAMENT_ID}/fixtures`, {
@@ -39,8 +46,16 @@ function Fixtures() {
       .then(data => {
         const all = data.results || []
         setFixtures(all)
+<<<<<<< HEAD
         const hasStartedKO = all.some(f => f.stage !== 'Group' && new Date(f.fixture_time + 'Z') < new Date())
         if (hasStartedKO) setShowGroups(false)
+=======
+
+        // Auto-hide groups if any KO fixture has started
+        const hasStartedKO = all.some(f => f.stage !== 'Group' && new Date(f.fixture_time + 'Z') < new Date())
+        if (hasStartedKO) setShowGroups(false)
+
+>>>>>>> 679a57fbc604d293f458ef683d70d0f5d4c8738f
         setLoading(false)
       })
 
@@ -106,6 +121,7 @@ function Fixtures() {
       .catch(err => console.error('Error saving prediction:', err))
   }
 
+<<<<<<< HEAD
   async function handleSaveAll() {
     // Collect all unlocked fixtures that have both scores filled in
     const toSave = fixtures.filter(f => {
@@ -156,10 +172,19 @@ function Fixtures() {
     return !saved[f.id] && p.score1 !== '' && p.score1 !== undefined && p.score2 !== '' && p.score2 !== undefined
   }).length
 
+=======
+  const hasKOFixtures = fixtures.some(f => f.stage !== 'Group')
+
+  // Sort chronologically, filter groups if hidden
+>>>>>>> 679a57fbc604d293f458ef683d70d0f5d4c8738f
   const sorted = [...fixtures]
     .filter(f => showGroups || f.stage !== 'Group')
     .sort((a, b) => new Date(a.fixture_time) - new Date(b.fixture_time))
 
+<<<<<<< HEAD
+=======
+  // Split into sections with dividers: Group stage as one block, then each KO stage
+>>>>>>> 679a57fbc604d293f458ef683d70d0f5d4c8738f
   const sections = []
   let currentStage = null
   sorted.forEach(f => {
@@ -177,8 +202,13 @@ function Fixtures() {
     <div className="page">
       <h1>📋 Match Predictions</h1>
 
+<<<<<<< HEAD
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
         {hasKOFixtures ? (
+=======
+      {hasKOFixtures && (
+        <div style={{ marginBottom: '16px' }}>
+>>>>>>> 679a57fbc604d293f458ef683d70d0f5d4c8738f
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', color: '#888' }}>
             <input
               type="checkbox"
@@ -188,6 +218,7 @@ function Fixtures() {
             />
             Show group stage matches
           </label>
+<<<<<<< HEAD
         ) : <div />}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -221,6 +252,38 @@ function Fixtures() {
             </span>
             <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
           </div>
+=======
+        </div>
+      )}
+
+      {sections.map((section, idx) => (
+        <div key={section.key} className="fixture-section">
+          {/* Divider between sections */}
+          {idx > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              margin: '16px 0 12px', color: section.key === 'Group' ? 'var(--accent-light)' : '#ffb74d'
+            }}>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {section.key === 'Group' ? 'Group Stage' : STAGE_LABELS[section.key] || section.key}
+              </span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+            </div>
+          )}
+          {idx === 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              margin: '0 0 12px', color: section.key === 'Group' ? 'var(--accent-light)' : '#ffb74d'
+            }}>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {section.key === 'Group' ? 'Group Stage' : STAGE_LABELS[section.key] || section.key}
+              </span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+            </div>
+          )}
+>>>>>>> 679a57fbc604d293f458ef683d70d0f5d4c8738f
 
           {section.fixtures.map(fixture => {
             const fid = fixture.id
