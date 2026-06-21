@@ -31,6 +31,11 @@ function Fixtures() {
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState(null) // 'success' | 'error' | null
 
+  // Tooltip / other-predictions state
+  const [openTooltipId, setOpenTooltipId] = useState(null)
+  const [othersCache, setOthersCache] = useState({}) // fixtureId -> array of predictions
+  const [othersLoading, setOthersLoading] = useState(null) // fixtureId currently loading
+
   useEffect(() => {
     fetch(`${API_URL}/tournaments/${TOURNAMENT_ID}/fixtures`, {
       headers: { Authorization: `Bearer ${authToken}` }
@@ -107,7 +112,6 @@ function Fixtures() {
   }
 
   async function handleSaveAll() {
-    // Collect all unlocked fixtures that have both scores filled in
     const toSave = fixtures.filter(f => {
       if (isLocked(f.fixture_time)) return false
       const p = predictions[f.id] || {}
@@ -145,6 +149,28 @@ function Fixtures() {
     } finally {
       setSaving(false)
       setTimeout(() => setSaveStatus(null), 3000)
+    }
+  }
+
+  function toggleTooltip(fixtureId) {
+    if (openTooltipId === fixtureId) {
+      setOpenTooltipId(null)
+      return
+    }
+    setOpenTooltipId(fixtureId)
+
+    // Fetch (and cache) other predictions for this fixture if not already loaded
+    if (!othersCache[fixtureId]) {
+      setOthersLoading(fixtureId)
+      fetch(`${API_URL}/tournaments/${TOURNAMENT_ID}/fixtures/${fixtureId}/all-predictions`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          setOthersCache(prev => ({ ...prev, [fixtureId]: data.results || [] }))
+        })
+        .catch(err => console.error('Error loading other predictions:', err))
+        .finally(() => setOthersLoading(null))
     }
   }
 
@@ -229,9 +255,12 @@ function Fixtures() {
             const p = predictions[fid] || {}
             const isDraw = isKO && p.score1 !== '' && p.score2 !== '' && p.score1 === p.score2
             const isSaved = saved[fid]
+            const tooltipOpen = openTooltipId === fid
+            const othersData = othersCache[fid]
+            const isOthersLoading = othersLoading === fid
 
             return (
-              <div key={fid} className={`fixture-card ${isSaved ? 'saved' : ''} ${locked ? 'locked' : ''}`}>
+              <div key={fid} className={`fixture-card ${isSaved ? 'saved' : ''} ${locked ? 'locked' : ''}`} style={{ position: 'relative' }}>
                 <div className="fixture-teams">
                   <span className="team">{fixture.team_1}</span>
                   <div className="score-inputs">
@@ -248,7 +277,58 @@ function Fixtures() {
                     />
                   </div>
                   <span className="team">{fixture.team_2}</span>
+                  <button
+                    onClick={() => toggleTooltip(fid)}
+                    title="See everyone's predictions"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: tooltipOpen ? 'var(--accent-light)' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      fontSize: '0.95rem',
+                      padding: '2px 4px',
+                      lineHeight: 1
+                    }}
+                  >
+                    👥
+                  </button>
                 </div>
+
+                {tooltipOpen && (
+                  <div style={{
+                    marginTop: '6px',
+                    padding: '8px 10px',
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem'
+                  }}>
+                    {isOthersLoading && <span style={{ color: 'var(--text-muted)' }}>Loading predictions...</span>}
+                    {!isOthersLoading && othersData && othersData.length === 0 && (
+                      <span style={{ color: 'var(--text-muted)' }}>No predictions yet</span>
+                    )}
+                    {!isOthersLoading && othersData && othersData.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {othersData
+                          .slice()
+                          .sort((a, b) => a.username.localeCompare(b.username))
+                          .map(pred => (
+                            <div key={pred.username} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text)' }}>
+                              <span style={{ color: 'var(--text-muted)' }}>{pred.username}</span>
+                              <span>
+                                {pred.predicted_score_1}-{pred.predicted_score_2}
+                                {pred.predicted_pen_score_1 != null && (
+                                  <span style={{ color: 'var(--text-muted)' }}>
+                                    {' '}(pen {pred.predicted_pen_score_1}-{pred.predicted_pen_score_2})
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {isDraw && !locked && (
                   <div className="penalty-inputs">
