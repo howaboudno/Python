@@ -1,6 +1,6 @@
 #Imports
 from fastapi import APIRouter, Depends, HTTPException, status
-from models.models import User, Tournament, Fixture, Results
+from models.models import User, Tournament, Fixture, Results, GroupResults
 from core.security import get_current_user
 from core.database import get_db
 from schemas.tournament import TournamentCreate
@@ -83,7 +83,6 @@ def update_fixture(
     if not fixture:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fixture not found")
 
-    # Enforce kickoff lock
     if fixture.fixture_time.replace(tzinfo=timezone.utc) <= datetime.now(timezone.utc):
         return "You're about to update a match that has already kicked off."
 
@@ -145,3 +144,45 @@ def create_result(
         calculate_total(user.id, tournament_id, db)
 
     return db_result
+
+
+#==Group Results Routes==#
+
+@router.post("/tournaments/{tournament_id}/group-results")
+def save_group_results(
+    tournament_id: int,
+    body: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admins only")
+
+    group_id = body.get("group_id")
+    first_place = body.get("first_place")
+    second_place = body.get("second_place")
+    third_place = body.get("third_place")
+
+    if not all([group_id, first_place, second_place, third_place]):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing fields")
+
+    existing = db.query(GroupResults).filter(
+        GroupResults.tournament_id == tournament_id,
+        GroupResults.group_id == group_id
+    ).first()
+
+    if existing:
+        existing.first_place = first_place
+        existing.second_place = second_place
+        existing.third_place = third_place
+    else:
+        db.add(GroupResults(
+            tournament_id=tournament_id,
+            group_id=group_id,
+            first_place=first_place,
+            second_place=second_place,
+            third_place=third_place
+        ))
+
+    db.commit()
+    return {"message": f"Group {group_id} results saved"}

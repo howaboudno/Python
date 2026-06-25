@@ -1,6 +1,6 @@
 #Imports
 from fastapi import APIRouter, Depends, HTTPException, status
-from models.models import User, Tournament, Fixture, Results, FixturePrediction
+from models.models import User, Tournament, Fixture, Results, FixturePrediction, GroupResults
 from core.security import get_current_user
 from core.database import get_db
 from sqlalchemy.orm import Session
@@ -50,6 +50,7 @@ def get_fixture_by_id(tournament_id: int, fixture_id: int, db: Session = Depends
             detail="Fixture not found")
     return fixture
 
+
 @router.get("/tournaments/{tournament_id}/fixtures/{fixture_id}/result")
 def get_result(tournament_id: int, fixture_id: int, db: Session = Depends(get_db)):
     result = db.query(Results).filter(Results.fixture_id == fixture_id).first()
@@ -58,7 +59,7 @@ def get_result(tournament_id: int, fixture_id: int, db: Session = Depends(get_db
     return result
 
 
-#==Prediction Visibility Route==#
+#==All Predictions Route==#
 
 @router.get("/tournaments/{tournament_id}/fixtures/{fixture_id}/all-predictions")
 def get_all_predictions_for_fixture(
@@ -90,3 +91,25 @@ def get_all_predictions_for_fixture(
         })
 
     return {"results": results}
+
+
+#==Group Results Routes==#
+
+@router.get("/tournaments/{tournament_id}/group-results")
+def get_group_results(
+    tournament_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    results = db.query(GroupResults).filter(
+        GroupResults.tournament_id == tournament_id
+    ).all()
+    return {"results": [
+        {
+            "group_id": r.group_id,
+            "first_place": r.first_place,
+            "second_place": r.second_place,
+            "third_place": r.third_place
+        }
+        for r in results
+    ]}
