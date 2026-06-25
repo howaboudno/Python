@@ -2,8 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 class FixtureCreate(BaseModel):
-    tournament_id: int
-    fixture_number: int
+    fixture_number: str
     group: str | None = None
     team_1: str
     team_2: str
