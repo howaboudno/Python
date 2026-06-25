@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WC2026 Admin</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; padding: 24px; }
+  h1 { font-size: 1.4rem; color: #fff; margin-bottom: 4px; }
+  .sub { color: #888; font-size: 0.85rem; margin-bottom: 24px; }
+
+  .login-box { max-width: 360px; background: #1a1d2e; border: 1px solid #2a2d3e; border-radius: 8px; padding: 24px; margin-bottom: 32px; }
+  .login-box h2 { font-size: 1rem; margin-bottom: 16px; }
+  input, select { width: 100%; padding: 9px 12px; background: #13151f; border: 1px solid #2a2d3e; border-radius: 6px; color: #e0e0e0; font-size: 0.9rem; margin-bottom: 10px; display: block; }
+  input:focus, select:focus { outline: none; border-color: #2E75B6; }
+  button { padding: 9px 20px; background: #2E75B6; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: background 0.15s; }
+  button:hover { background: #4fc3f7; }
+  .btn-sm { padding: 6px 14px; font-size: 0.82rem; }
+  .btn-success { background: #4caf50; }
+  .btn-success:hover { background: #66bb6a; }
+  .btn-danger { background: #f44336; }
+
+  .tournament-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .tournament-bar label { font-size: 0.85rem; color: #888; white-space: nowrap; }
+  .tournament-bar select { margin-bottom: 0; max-width: 280px; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+  .tab { padding: 8px 20px; background: #1a1d2e; border: 1px solid #2a2d3e; border-radius: 6px; cursor: pointer; font-size: 0.88rem; color: #888; }
+  .tab.active { background: #2E75B6; color: #fff; border-color: #2E75B6; }
+
+  .section { margin-bottom: 32px; }
+  .section h2 { font-size: 1rem; color: #4fc3f7; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; border-bottom: 1px solid #2a2d3e; padding-bottom: 8px; }
+
+  .filter-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filter-row select { width: auto; margin-bottom: 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  th { text-align: left; padding: 8px 12px; color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #2a2d3e; }
+  td { padding: 10px 12px; border-bottom: 1px solid #1a1d2e; vertical-align: middle; }
+  tr:hover td { background: #1a1d2e; }
+
+  .score-cell { display: flex; align-items: center; gap: 6px; }
+  .score-cell input { width: 52px; margin-bottom: 0; text-align: center; padding: 6px; }
+  .vs { color: #555; font-size: 0.8rem; }
+  .team { min-width: 120px; }
+
+  .pen-toggle { font-size: 0.75rem; color: #4fc3f7; cursor: pointer; margin-left: 6px; user-select: none; }
+  .pen-row { display: none; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.8rem; color: #888; }
+  .pen-row input { width: 52px; margin-bottom: 0; text-align: center; padding: 6px; }
+  .pen-row.visible { display: flex; }
+
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot-done { background: #4caf50; }
+  .dot-pending { background: #555; }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #4caf50; color: #fff; padding: 10px 20px; border-radius: 6px; font-size: 0.88rem; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
+  .toast.error { background: #f44336; }
+  .toast.show { opacity: 1; }
+
+  .tag { font-size: 0.7rem; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+  .tag-group { background: #1a3a5c; color: #4fc3f7; }
+  .tag-ko { background: #3a2a1a; color: #ffb74d; }
+
+  #main { display: none; }
+  .kickoff { font-size: 0.78rem; color: #555; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .group-card { background: #1a1d2e; border: 1px solid #2a2d3e; border-radius: 8px; padding: 16px; }
+  .group-card h3 { font-size: 0.95rem; color: #4fc3f7; margin-bottom: 12px; }
+  .group-card .field-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.85rem; }
+  .group-card .field-row label { width: 32px; color: #888; flex-shrink: 0; }
+  .group-card .field-row select { margin-bottom: 0; flex: 1; }
+  .group-card button { margin-top: 8px; width: 100%; }
+
+  .bonus-card { background: #1a1d2e; border: 1px solid #2a2d3e; border-radius: 8px; padding: 20px; max-width: 480px; }
+  .bonus-card .field-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .bonus-card .field-row label { width: 120px; color: #888; font-size: 0.85rem; flex-shrink: 0; }
+  .bonus-card .field-row select { margin-bottom: 0; flex: 1; }
+  .bonus-card button { margin-top: 4px; }
+
+  .add-fixture-card { background: #1a1d2e; border: 1px solid #2a2d3e; border-radius: 8px; padding: 20px; max-width: 560px; }
+  .add-fixture-card .field-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .add-fixture-card .field-row label { width: 110px; color: #888; font-size: 0.85rem; flex-shrink: 0; }
+  .add-fixture-card .field-row input,
+  .add-fixture-card .field-row select { margin-bottom: 0; flex: 1; }
+  .add-fixture-card .hint { font-size: 0.78rem; color: #555; margin-bottom: 16px; }
+
+  .fixture-list { margin-top: 24px; }
+  .fixture-list table { font-size: 0.82rem; }
+</style>
+</head>
+<body>
+
+<h1>⚽ WC2026 Admin</h1>
+<p class="sub">Admin panel — result entry</p>
+
+<div class="login-box" id="login-box">
+  <h2>Log in</h2>
+  <input type="text" id="username" placeholder="Username" value="aboud"/>
+  <input type="password" id="password" placeholder="Password"/>
+  <button onclick="login()">Log in</button>
+  <p id="login-error" style="color:#f44336;font-size:0.82rem;margin-top:8px;display:none"></p>
+</div>
+
+<div id="main">
+  <!-- Tournament selector -->
+  <div class="tournament-bar">
+    <label>Tournament</label>
+    <select id="tournament-select" onchange="onTournamentChange()"></select>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('fixtures')">Match Results</div>
+    <div class="tab" onclick="showTab('groups')">Group Rankings</div>
+    <div class="tab" onclick="showTab('bonus')">Champion & Top Scorer</div>
+    <div class="tab" onclick="showTab('add')">Add Fixture</div>
+  </div>
+
+  <!-- FIXTURES TAB -->
+  <div id="tab-fixtures" class="page active">
+    <div class="filter-row section">
+      <select id="filter-stage" onchange="renderTable()">
+        <option value="">All stages</option>
+        <option value="Group">Group stage</option>
+        <option value="R32">Round of 32</option>
+        <option value="R16">Round of 16</option>
+        <option value="QF">Quarter-finals</option>
+        <option value="SF">Semi-finals</option>
+        <option value="F">Final</option>
+      </select>
+      <select id="filter-group" onchange="renderTable()">
+        <option value="">All groups</option>
+      </select>
+      <select id="filter-status" onchange="renderTable()">
+        <option value="">All matches</option>
+        <option value="pending">No result yet</option>
+        <option value="done">Result entered</option>
+      </select>
+    </div>
+    <div class="section">
+      <h2>Fixtures</h2>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Stage</th><th>Kickoff</th><th>Match</th><th>Score</th><th></th></tr>
+        </thead>
+        <tbody id="fixture-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- GROUP RANKINGS TAB -->
+  <div id="tab-groups" class="page">
+    <div class="section">
+      <h2>Group Final Rankings</h2>
+      <p style="color:#888;font-size:0.85rem;margin-bottom:16px">Enter the final 1st, 2nd, 3rd place for each group after the group stage completes.</p>
+      <div class="group-grid" id="group-grid"></div>
+    </div>
+  </div>
+
+  <!-- BONUS TAB -->
+  <div id="tab-bonus" class="page">
+    <div class="section">
+      <h2>Tournament Winner & Top Scorer</h2>
+      <p style="color:#888;font-size:0.85rem;margin-bottom:16px">Set the actual tournament winner and top scorer when known.</p>
+      <div class="bonus-card">
+        <div class="field-row">
+          <label>Champion</label>
+          <select id="bonus-winner"><option value="">Select country</option></select>
+        </div>
+        <div class="field-row">
+          <label>Top Scorer</label>
+          <select id="bonus-scorer"><option value="">Select player</option></select>
+        </div>
+        <button id="bonus-btn" onclick="submitBonus()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD FIXTURE TAB -->
+  <div id="tab-add" class="page">
+    <div class="section">
+      <h2>Add Fixture</h2>
+      <div class="add-fixture-card">
+        <div class="field-row">
+          <label>Fixture #</label>
+          <input type="text" id="new-num" placeholder="e.g. 73 or W26-73"/>
+        </div>
+        <div class="field-row">
+          <label>Stage</label>
+          <select id="new-stage" onchange="toggleGroupField()">
+            <option value="">Select stage</option>
+            <option value="Group">Group</option>
+            <option value="R32">R32</option>
+            <option value="R16">R16</option>
+            <option value="QF">QF</option>
+            <option value="SF">SF</option>
+            <option value="F">Final</option>
+          </select>
+        </div>
+        <div class="field-row" id="group-field-row" style="display:none">
+          <label>Group</label>
+          <select id="new-group">
+            <option value="">Select group</option>
+            <option value="A">A</option><option value="B">B</option>
+            <option value="C">C</option><option value="D">D</option>
+            <option value="E">E</option><option value="F">F</option>
+            <option value="G">G</option><option value="H">H</option>
+            <option value="I">I</option><option value="J">J</option>
+            <option value="K">K</option><option value="L">L</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <label>Team 1</label>
+          <input type="text" id="new-team1" placeholder="e.g. Netherlands"/>
+        </div>
+        <div class="field-row">
+          <label>Team 2</label>
+          <input type="text" id="new-team2" placeholder="e.g. Argentina"/>
+        </div>
+        <div class="field-row">
+          <label>Kickoff (AMS)</label>
+          <input type="datetime-local" id="new-kickoff"/>
+        </div>
+        <p class="hint">Enter kickoff in Amsterdam local time (CEST = UTC+2 in summer). Auto-converted to UTC.</p>
+        <button onclick="submitNewFixture()">Add Fixture</button>
+      </div>
+
+      <div class="fixture-list section" style="margin-top:32px">
+        <h2>KO Fixtures Added</h2>
+        <table>
+          <thead>
+            <tr><th>#</th><th>Stage</th><th>Kickoff (AMS)</th><th>Match</th></tr>
+          </thead>
+          <tbody id="ko-fixture-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://python-production-c646.up.railway.app'
+const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']
+
+const GROUP_TEAMS = {
+  A: ['Mexico','South Africa','South Korea','Czech Republic'],
+  B: ['Canada','Bosnia & Herz.','Qatar','Switzerland'],
+  C: ['Brazil','Morocco','Haiti','Scotland'],
+  D: ['United States','Paraguay','Australia','Türkiye'],
+  E: ['Germany','Curaçao','Ivory Coast','Ecuador'],
+  F: ['Netherlands','Japan','Sweden','Tunisia'],
+  G: ['Belgium','Egypt','Iran','New Zealand'],
+  H: ['Spain','Cape Verde','Saudi Arabia','Uruguay'],
+  I: ['France','Senegal','Iraq','Norway'],
+  J: ['Argentina','Algeria','Austria','Jordan'],
+  K: ['Portugal','DR Congo','Uzbekistan','Colombia'],
+  L: ['England','Croatia','Ghana','Panama']
+}
+
+const ALL_TEAMS = Object.values(GROUP_TEAMS).flat().sort()
+
+const TOP_SCORERS = [
+  'Haaland','Yamal','Ronaldo','Mbappé','Olise','Salah','Kane',
+  'Vinicius Jr','Lewandowski','Müller','De Bruyne','Messi',
+  'Osimhen','Pedri','Bellingham','Son','Lukaku','Rashford',
+  'Saka','Gnabry','Dembélé','Griezmann','Pulisic','Reyna',
+  'Firmino','Diaz','Depay','Ziyech','Sabitzer','Lautaro'
+].sort()
+
+let token = null
+let fixtures = []
+let results = {}
+let groupResults = {}
+
+function getTournamentId() {
+  return parseInt(document.getElementById('tournament-select').value)
+}
+
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['fixtures','groups','bonus','add'][i] === name)
+  })
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+  document.getElementById(`tab-${name}`).classList.add('active')
+  if (name === 'add') renderKOFixtures()
+}
+
+function toggleGroupField() {
+  const stage = document.getElementById('new-stage').value
+  document.getElementById('group-field-row').style.display = stage === 'Group' ? 'flex' : 'none'
+}
+
+async function login() {
+  const username = document.getElementById('username').value
+  const password = document.getElementById('password').value
+  const err = document.getElementById('login-error')
+  err.style.display = 'none'
+
+  const res = await fetch(`${API}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  })
+  const data = await res.json()
+  if (data.access_token) {
+    token = data.access_token
+    document.getElementById('login-box').style.display = 'none'
+    document.getElementById('main').style.display = 'block'
+    populateBonusDropdowns()
+    await loadTournaments()
+  } else {
+    err.textContent = data.message || 'Login failed'
+    err.style.display = 'block'
+  }
+}
+
+async function loadTournaments() {
+  const res = await fetch(`${API}/tournaments`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  const data = await res.json()
+  const tournaments = data.results || []
+  const sel = document.getElementById('tournament-select')
+  sel.innerHTML = ''
+  tournaments.forEach(t => {
+    const opt = document.createElement('option')
+    opt.value = t.id
+    opt.textContent = `${t.name} (${t.year})`
+    sel.appendChild(opt)
+  })
+  // Trigger load for the first tournament
+  await reloadForTournament()
+}
+
+async function onTournamentChange() {
+  fixtures = []
+  results = {}
+  groupResults = {}
+  document.getElementById('filter-group').innerHTML = '<option value="">All groups</option>'
+  await reloadForTournament()
+}
+
+async function reloadForTournament() {
+  await loadFixtures()
+  await loadGroupResults()
+  renderGroupGrid()
+  renderKOFixtures()
+}
+
+function populateBonusDropdowns() {
+  const winnerSel = document.getElementById('bonus-winner')
+  const scorerSel = document.getElementById('bonus-scorer')
+  ALL_TEAMS.forEach(t => {
+    const o = document.createElement('option')
+    o.value = t; o.textContent = t
+    winnerSel.appendChild(o)
+  })
+  TOP_SCORERS.forEach(p => {
+    const o = document.createElement('option')
+    o.value = p; o.textContent = p
+    scorerSel.appendChild(o)
+  })
+}
+
+async function loadFixtures() {
+  const tid = getTournamentId()
+  if (!tid) return
+  const res = await fetch(`${API}/tournaments/${tid}/fixtures`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  const data = await res.json()
+  fixtures = (data.results || []).sort((a, b) => parseInt(a.fixture_number) - parseInt(b.fixture_number))
+
+  for (const f of fixtures) {
+    try {
+      const r = await fetch(`${API}/tournaments/${tid}/fixtures/${f.id}/result`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (r.ok) {
+        const rd = await r.json()
+        if (rd && rd.score_1 !== undefined) results[f.id] = rd
+      }
+    } catch (e) {}
+  }
+
+  const groups = [...new Set(fixtures.filter(f => f.group).map(f => f.group))].sort()
+  const gsel = document.getElementById('filter-group')
+  gsel.innerHTML = '<option value="">All groups</option>'
+  groups.forEach(g => {
+    const opt = document.createElement('option')
+    opt.value = g; opt.textContent = `Group ${g}`
+    gsel.appendChild(opt)
+  })
+
+  renderTable()
+}
+
+async function loadGroupResults() {
+  const tid = getTournamentId()
+  if (!tid) return
+  try {
+    const res = await fetch(`${API}/tournaments/${tid}/group-results`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      groupResults = {}
+      ;(data.results || []).forEach(r => { groupResults[r.group_id] = r })
+    }
+  } catch (e) {}
+}
+
+function renderTable() {
+  const stageFilter = document.getElementById('filter-stage').value
+  const groupFilter = document.getElementById('filter-group').value
+  const statusFilter = document.getElementById('filter-status').value
+
+  const filtered = fixtures.filter(f => {
+    if (stageFilter && f.stage !== stageFilter) return false
+    if (groupFilter && f.group !== groupFilter) return false
+    if (statusFilter === 'pending' && results[f.id]) return false
+    if (statusFilter === 'done' && !results[f.id]) return false
+    return true
+  })
+
+  const tbody = document.getElementById('fixture-tbody')
+  tbody.innerHTML = ''
+  const tid = getTournamentId()
+
+  filtered.forEach(f => {
+    const existing = results[f.id]
+    const stageTag = f.stage === 'Group'
+      ? `<span class="tag tag-group">${f.group}</span>`
+      : `<span class="tag tag-ko">${f.stage}</span>`
+    const kickoff = new Date(f.fixture_time + 'Z').toLocaleString('nl-NL', {
+      timeZone: 'Europe/Amsterdam', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+    })
+    const s1 = existing ? existing.score_1 : ''
+    const s2 = existing ? existing.score_2 : ''
+    const p1 = existing ? (existing.pen_score_1 ?? '') : ''
+    const p2 = existing ? (existing.pen_score_2 ?? '') : ''
+    const hasPen = existing && existing.pen_score_1 !== null
+    const doneDot = existing
+      ? '<span class="status-dot dot-done"></span>'
+      : '<span class="status-dot dot-pending"></span>'
+
+    const tr = document.createElement('tr')
+    tr.innerHTML = `
+      <td>${doneDot}${f.fixture_number}</td>
+      <td>${stageTag}</td>
+      <td class="kickoff">${kickoff}</td>
+      <td><span class="team">${f.team_1}</span> <span class="vs">vs</span> <span class="team">${f.team_2}</span></td>
+      <td>
+        <div class="score-cell">
+          <input type="number" min="0" id="s1_${f.id}" value="${s1}" placeholder="0" style="width:52px"/>
+          <span class="vs">-</span>
+          <input type="number" min="0" id="s2_${f.id}" value="${s2}" placeholder="0" style="width:52px"/>
+          <span class="pen-toggle" onclick="togglePen(${f.id})">PK</span>
+        </div>
+        <div class="pen-row ${hasPen ? 'visible' : ''}" id="pen_${f.id}">
+          Pen:
+          <input type="number" min="0" id="p1_${f.id}" value="${p1}" placeholder="0"/>
+          <span class="vs">-</span>
+          <input type="number" min="0" id="p2_${f.id}" value="${p2}" placeholder="0"/>
+        </div>
+      </td>
+      <td>
+        <button class="btn-sm ${existing ? 'btn-success' : ''}" onclick="submitResult(${f.id}, ${tid})">
+          ${existing ? '✓ Update' : 'Save'}
+        </button>
+      </td>
+    `
+    tbody.appendChild(tr)
+  })
+}
+
+function togglePen(fixtureId) {
+  document.getElementById(`pen_${fixtureId}`).classList.toggle('visible')
+}
+
+async function submitResult(fixtureId, tournamentId) {
+  const s1 = document.getElementById(`s1_${fixtureId}`).value
+  const s2 = document.getElementById(`s2_${fixtureId}`).value
+  const penRow = document.getElementById(`pen_${fixtureId}`)
+  const hasPen = penRow.classList.contains('visible')
+  const p1 = hasPen ? document.getElementById(`p1_${fixtureId}`).value : null
+  const p2 = hasPen ? document.getElementById(`p2_${fixtureId}`).value : null
+
+  if (s1 === '' || s2 === '') { showToast('Enter both scores', true); return }
+
+  const res = await fetch(`${API}/tournaments/${tournamentId}/fixtures/${fixtureId}/result`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      fixture_id: fixtureId,
+      score_1: parseInt(s1), score_2: parseInt(s2),
+      pen_score_1: (hasPen && p1 !== '') ? parseInt(p1) : null,
+      pen_score_2: (hasPen && p2 !== '') ? parseInt(p2) : null
+    })
+  })
+  const data = await res.json()
+  if (res.ok) {
+    results[fixtureId] = data
+    showToast(`Saved: ${s1} - ${s2}`)
+    renderTable()
+  } else {
+    showToast(data.detail || 'Error saving result', true)
+  }
+}
+
+function renderGroupGrid() {
+  const grid = document.getElementById('group-grid')
+  grid.innerHTML = ''
+
+  GROUPS.forEach(group => {
+    const existing = groupResults[group] || {}
+    const teams = GROUP_TEAMS[group] || []
+
+    const makeOptions = (selected) =>
+      `<option value="">Select</option>` +
+      teams.map(t => `<option value="${t}" ${t === selected ? 'selected' : ''}>${t}</option>`).join('')
+
+    const card = document.createElement('div')
+    card.className = 'group-card'
+    card.innerHTML = `
+      <h3>Group ${group}</h3>
+      <div class="field-row">
+        <label>1st</label>
+        <select id="gr1_${group}">${makeOptions(existing.first_place || '')}</select>
+      </div>
+      <div class="field-row">
+        <label>2nd</label>
+        <select id="gr2_${group}">${makeOptions(existing.second_place || '')}</select>
+      </div>
+      <div class="field-row">
+        <label>3rd</label>
+        <select id="gr3_${group}">${makeOptions(existing.third_place || '')}</select>
+      </div>
+      <button class="${existing.first_place ? 'btn-success' : ''}" id="grbtn_${group}" onclick="submitGroupResult('${group}')">
+        ${existing.first_place ? '✓ Update' : 'Save'}
+      </button>
+    `
+    grid.appendChild(card)
+  })
+}
+
+async function submitGroupResult(group) {
+  const first = document.getElementById(`gr1_${group}`).value
+  const second = document.getElementById(`gr2_${group}`).value
+  const third = document.getElementById(`gr3_${group}`).value
+  const tid = getTournamentId()
+
+  if (!first || !second || !third) { showToast('Select all 3 places for Group ' + group, true); return }
+
+  const res = await fetch(`${API}/tournaments/${tid}/group-results`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ group_id: group, first_place: first, second_place: second, third_place: third })
+  })
+  const data = await res.json()
+  if (res.ok) {
+    groupResults[group] = { group_id: group, first_place: first, second_place: second, third_place: third }
+    const btn = document.getElementById(`grbtn_${group}`)
+    btn.textContent = '✓ Update'; btn.className = 'btn-success'
+    showToast(`Group ${group}: ${first} / ${second} / ${third}`)
+  } else {
+    showToast(data.detail || 'Error saving group result', true)
+  }
+}
+
+async function submitBonus() {
+  const winner = document.getElementById('bonus-winner').value
+  const scorer = document.getElementById('bonus-scorer').value
+  const tid = getTournamentId()
+  if (!winner || !scorer) { showToast('Select both champion and top scorer', true); return }
+
+  const res = await fetch(`${API}/tournaments/${tid}/bonus-result`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ winner, top_scorer: scorer })
+  })
+  const data = await res.json()
+  if (res.ok) {
+    const btn = document.getElementById('bonus-btn')
+    btn.textContent = '✓ Saved'; btn.className = 'btn-success'
+    showToast(`Champion: ${winner} | Top scorer: ${scorer}`)
+  } else {
+    showToast(data.detail || 'Error saving bonus result', true)
+  }
+}
+
+async function submitNewFixture() {
+  const tid = getTournamentId()
+  const num = document.getElementById('new-num').value
+  const stage = document.getElementById('new-stage').value
+  const group = stage === 'Group' ? document.getElementById('new-group').value : null
+  const team1 = document.getElementById('new-team1').value.trim()
+  const team2 = document.getElementById('new-team2').value.trim()
+  const kickoffLocal = document.getElementById('new-kickoff').value
+  // Convert Amsterdam time (CEST = UTC+2) to UTC
+  const amsterdamOffsetMs = 2 * 60 * 60 * 1000
+  const kickoffUtc = new Date(new Date(kickoffLocal).getTime() - amsterdamOffsetMs).toISOString().slice(0, 19)
+
+  if (!tid) { showToast('Select a tournament first', true); return }
+  if (!num || !stage || !team1 || !team2 || !kickoff) { showToast('Fill in all fields', true); return }
+  if (stage === 'Group' && !group) { showToast('Select a group', true); return }
+
+  const res = await fetch(`${API}/tournaments/${tid}/fixtures`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      fixture_number: num,
+      stage,
+      group: group || null,
+      team_1: team1,
+      team_2: team2,
+      fixture_time: kickoffUtc
+    })
+  })
+  const data = await res.json()
+  if (res.ok) {
+    showToast(`Fixture ${num} added: ${team1} vs ${team2}`)
+    document.getElementById('new-num').value = ''
+    document.getElementById('new-team1').value = ''
+    document.getElementById('new-team2').value = ''
+    document.getElementById('new-kickoff').value = ''
+    document.getElementById('new-stage').value = ''
+    toggleGroupField()
+    fixtures = []
+    results = {}
+    document.getElementById('filter-group').innerHTML = '<option value="">All groups</option>'
+    await loadFixtures()
+    renderKOFixtures()
+  } else {
+    showToast(data.detail || JSON.stringify(data) || 'Error adding fixture', true)
+  }
+}
+
+function renderKOFixtures() {
+  const tbody = document.getElementById('ko-fixture-tbody')
+  tbody.innerHTML = ''
+  const koFixtures = fixtures
+    .filter(f => f.stage !== 'Group')
+    .sort((a, b) => parseInt(a.fixture_number) - parseInt(b.fixture_number))
+
+  if (koFixtures.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#555">No KO fixtures added yet</td></tr>'
+    return
+  }
+
+  koFixtures.forEach(f => {
+    const kickoff = new Date(f.fixture_time + 'Z').toLocaleString('nl-NL', {
+      timeZone: 'Europe/Amsterdam', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+    })
+    const tr = document.createElement('tr')
+    tr.innerHTML = `
+      <td>${f.fixture_number}</td>
+      <td><span class="tag tag-ko">${f.stage}</span></td>
+      <td class="kickoff">${kickoff}</td>
+      <td>${f.team_1} vs ${f.team_2}</td>
+    `
+    tbody.appendChild(tr)
+  })
+}
+
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast')
+  t.textContent = msg
+  t.className = `toast ${isError ? 'error' : ''} show`
+  setTimeout(() => t.classList.remove('show'), 3000)
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && !token) login() })
+</script>
+</body>
+</html>
