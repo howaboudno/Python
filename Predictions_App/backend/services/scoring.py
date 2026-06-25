@@ -84,13 +84,13 @@ def score_group_rankings(
         if result is None:
             continue
         if prediction.first_place == result.first_place:
-            group_prediction_points += 20
+            group_prediction_points += 10
         if prediction.second_place == result.second_place:
-            group_prediction_points += 12
+            group_prediction_points += 6
         if prediction.third_place == result.third_place:
-            group_prediction_points += 8
+            group_prediction_points += 0
         if prediction.first_place == result.first_place and prediction.second_place == result.second_place and prediction.third_place == result.third_place:
-            group_prediction_points += 8
+            group_prediction_points += 4
     return group_prediction_points
 
 #--Points for winner, topscorer==#
