@@ -95,15 +95,16 @@ function Fixtures() {
 
   function handleSave(fixtureId) {
     const p = predictions[fixtureId] || {}
+    const parseScore = (v) => v === '' || v === undefined ? 0 : parseInt(v)
     fetch(`${API_URL}/predictions/fixture`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
       body: JSON.stringify({
         fixture_id: fixtureId,
-        predicted_score_1: parseInt(p.score1),
-        predicted_score_2: parseInt(p.score2),
-        predicted_pen_score_1: p.pen1 !== '' ? parseInt(p.pen1) : null,
-        predicted_pen_score_2: p.pen2 !== '' ? parseInt(p.pen2) : null
+        predicted_score_1: parseScore(p.score1),
+        predicted_score_2: parseScore(p.score2),
+        predicted_pen_score_1: p.pen1 !== '' ? parseScore(p.pen1) : null,
+        predicted_pen_score_2: p.pen2 !== '' ? parseScore(p.pen2) : null
       })
     })
       .then(res => res.json())
@@ -112,11 +113,7 @@ function Fixtures() {
   }
 
   async function handleSaveAll() {
-    const toSave = fixtures.filter(f => {
-      if (isLocked(f.fixture_time)) return false
-      const p = predictions[f.id] || {}
-      return p.score1 !== '' && p.score1 !== undefined && p.score2 !== '' && p.score2 !== undefined
-    })
+    const toSave = fixtures.filter(f => !isLocked(f.fixture_time))
 
     if (toSave.length === 0) return
 
@@ -126,15 +123,16 @@ function Fixtures() {
     try {
       await Promise.all(toSave.map(f => {
         const p = predictions[f.id] || {}
+        const parseScore = (v) => v === '' || v === undefined ? 0 : parseInt(v)
         return fetch(`${API_URL}/predictions/fixture`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
           body: JSON.stringify({
             fixture_id: f.id,
-            predicted_score_1: parseInt(p.score1),
-            predicted_score_2: parseInt(p.score2),
-            predicted_pen_score_1: p.pen1 !== '' ? parseInt(p.pen1) : null,
-            predicted_pen_score_2: p.pen2 !== '' ? parseInt(p.pen2) : null
+            predicted_score_1: parseScore(p.score1),
+            predicted_score_2: parseScore(p.score2),
+            predicted_pen_score_1: p.pen1 !== '' ? parseScore(p.pen1) : null,
+            predicted_pen_score_2: p.pen2 !== '' ? parseScore(p.pen2) : null
           })
         })
       }))
@@ -179,7 +177,7 @@ function Fixtures() {
   const unsavedCount = fixtures.filter(f => {
     if (isLocked(f.fixture_time)) return false
     const p = predictions[f.id] || {}
-    return !saved[f.id] && p.score1 !== '' && p.score1 !== undefined && p.score2 !== '' && p.score2 !== undefined
+    return !saved[f.id]
   }).length
 
   const sorted = [...fixtures]
@@ -253,7 +251,9 @@ function Fixtures() {
             const locked = isLocked(fixture.fixture_time)
             const isKO = fixture.stage !== 'Group'
             const p = predictions[fid] || {}
-            const isDraw = isKO && p.score1 !== '' && p.score2 !== '' && p.score1 === p.score2
+            const s1 = p.score1 === '' || p.score1 === undefined ? '0' : p.score1
+            const s2 = p.score2 === '' || p.score2 === undefined ? '0' : p.score2
+            const isDraw = isKO && s1 === s2
             const isSaved = saved[fid]
             const tooltipOpen = openTooltipId === fid
             const othersData = othersCache[fid]
