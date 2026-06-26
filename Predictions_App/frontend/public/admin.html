@@ -99,7 +99,7 @@
 
 <div class="login-box" id="login-box">
   <h2>Log in</h2>
-  <input type="text" id="username" placeholder="Username" Placeholder="admin"/>
+  <input type="text" id="username" placeholder="Username" value="aboud"/>
   <input type="password" id="password" placeholder="Password"/>
   <button onclick="login()">Log in</button>
   <p id="login-error" style="color:#f44336;font-size:0.82rem;margin-top:8px;display:none"></p>
@@ -607,7 +607,7 @@ async function submitNewFixture() {
   const kickoffUtc = new Date(new Date(kickoffLocal).getTime() - amsterdamOffsetMs).toISOString().slice(0, 19)
 
   if (!tid) { showToast('Select a tournament first', true); return }
-  if (!num || !stage || !team1 || !team2 || !kickoff) { showToast('Fill in all fields', true); return }
+  if (!num || !stage || !team1 || !team2 || !kickoffLocal) { showToast('Fill in all fields', true); return }
   if (stage === 'Group' && !group) { showToast('Select a group', true); return }
 
   const res = await fetch(`${API}/tournaments/${tid}/fixtures`, {
