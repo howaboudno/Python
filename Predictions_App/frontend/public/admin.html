@@ -604,7 +604,7 @@ async function submitNewFixture() {
   const kickoffLocal = document.getElementById('new-kickoff').value
   // Convert Amsterdam time (CEST = UTC+2) to UTC
   const amsterdamOffsetMs = 2 * 60 * 60 * 1000
-  const kickoffUtc = new Date(new Date(kickoffLocal).getTime() - amsterdamOffsetMs).toISOString().slice(0, 19)
+  const kickoffUtc = new Date(new Date(kickoffLocal).getTime()).toISOString().slice(0, 19)
 
   if (!tid) { showToast('Select a tournament first', true); return }
   if (!num || !stage || !team1 || !team2 || !kickoffLocal) { showToast('Fill in all fields', true); return }
