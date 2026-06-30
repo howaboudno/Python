@@ -88,6 +88,22 @@
   .add-fixture-card .field-row select { margin-bottom: 0; flex: 1; }
   .add-fixture-card .hint { font-size: 0.78rem; color: #555; margin-bottom: 16px; }
 
+
+  .bracket-wrap { overflow-x: auto; padding-bottom: 16px; }
+  .bracket { display: flex; gap: 24px; align-items: flex-start; min-width: max-content; }
+  .bracket-col { flex: 0 0 200px; }
+  .bracket-col-header { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #ffb74d; text-align: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #2a2d3e; }
+  .bracket-slot { background: #1a1d2e; border: 1px solid #2a2d3e; border-radius: 6px; padding: 10px 12px; font-size: 0.82rem; }
+  .bracket-slot.has-fixture { border-color: #2a2d3e; }
+  .bracket-slot-tbd { background: #13151f; border: 1px dashed #2a2d3e; border-radius: 6px; padding: 10px 12px; font-size: 0.82rem; color: #555; text-align: center; }
+  .bracket-team-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .bracket-team { flex: 1; font-size: 0.82rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bracket-team select { width: 100%; padding: 4px 6px; font-size: 0.78rem; margin-bottom: 0; }
+  .bracket-kickoff { font-size: 0.72rem; color: #555; margin-top: 6px; }
+  .bracket-kickoff input { padding: 4px 6px; font-size: 0.75rem; margin-bottom: 0; }
+  .bracket-actions { display: flex; gap: 4px; margin-top: 8px; }
+  .bracket-actions button { flex: 1; padding: 4px 8px; font-size: 0.75rem; }
+  .bracket-num { font-size: 0.68rem; color: #555; margin-bottom: 4px; }
   .fixture-list { margin-top: 24px; }
   .fixture-list table { font-size: 0.82rem; }
 </style>
@@ -117,6 +133,7 @@
     <div class="tab" onclick="showTab('groups')">Group Rankings</div>
     <div class="tab" onclick="showTab('bonus')">Champion & Top Scorer</div>
     <div class="tab" onclick="showTab('add')">Add Fixture</div>
+    <div class="tab" onclick="showTab('bracket')">KO Bracket</div>
   </div>
 
   <!-- FIXTURES TAB -->
@@ -214,11 +231,11 @@
         </div>
         <div class="field-row">
           <label>Team 1</label>
-          <input type="text" id="new-team1" placeholder="e.g. Netherlands"/>
+          <select id="new-team1"><option value="">Select team</option></select>
         </div>
         <div class="field-row">
           <label>Team 2</label>
-          <input type="text" id="new-team2" placeholder="e.g. Argentina"/>
+          <select id="new-team2"><option value="">Select team</option></select>
         </div>
         <div class="field-row">
           <label>Kickoff (AMS)</label>
@@ -232,10 +249,21 @@
         <h2>KO Fixtures Added</h2>
         <table>
           <thead>
-            <tr><th>#</th><th>Stage</th><th>Kickoff (AMS)</th><th>Match</th></tr>
+            <tr><th>#</th><th>Stage</th><th>Match</th><th>Kickoff (AMS)</th><th></th></tr>
           </thead>
           <tbody id="ko-fixture-tbody"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- KO BRACKET TAB -->
+  <div id="tab-bracket" class="page">
+    <div class="section">
+      <h2>KO Bracket</h2>
+      <p style="color:#888;font-size:0.85rem;margin-bottom:16px">Click a slot to set teams and kickoff. Teams are filtered by the previous round's fixtures.</p>
+      <div class="bracket-wrap">
+        <div class="bracket" id="admin-bracket"></div>
       </div>
     </div>
   </div>
@@ -283,16 +311,60 @@ function getTournamentId() {
 
 function showTab(name) {
   document.querySelectorAll('.tab').forEach((t, i) => {
-    t.classList.toggle('active', ['fixtures','groups','bonus','add'][i] === name)
+    t.classList.toggle('active', ['fixtures','groups','bonus','add','bracket'][i] === name)
   })
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
   document.getElementById(`tab-${name}`).classList.add('active')
   if (name === 'add') renderKOFixtures()
+  if (name === 'bracket') renderAdminBracket()
+}
+
+const STAGE_ORDER = ['Group', 'R32', 'R16', 'QF', 'SF', 'F']
+
+function getTeamsForStage(stage) {
+  if (!stage || stage === 'Group') return ALL_TEAMS
+
+  const stageIdx = STAGE_ORDER.indexOf(stage)
+  if (stageIdx <= 0) return ALL_TEAMS
+
+  // Find the preceding KO stage
+  const precedingStage = STAGE_ORDER[stageIdx - 1]
+
+  // Get all teams from fixtures in the preceding stage
+  const precedingFixtures = fixtures.filter(f => f.stage === precedingStage)
+
+  if (precedingFixtures.length === 0) {
+    // No fixtures in preceding stage yet — fall back to group teams if coming from Group stage
+    if (precedingStage === 'Group') return ALL_TEAMS
+    return ALL_TEAMS
+  }
+
+  const teams = new Set()
+  precedingFixtures.forEach(f => {
+    if (f.team_1 && f.team_1 !== 'TBD') teams.add(f.team_1)
+    if (f.team_2 && f.team_2 !== 'TBD') teams.add(f.team_2)
+  })
+
+  return [...teams].sort()
+}
+
+function rebuildTeamDropdowns() {
+  const stage = document.getElementById('new-stage').value
+  const teams = getTeamsForStage(stage)
+  const makeOptions = (selId) => {
+    const sel = document.getElementById(selId)
+    const current = sel.value
+    sel.innerHTML = '<option value="">Select team</option>' +
+      teams.map(t => `<option value="${t}" ${t === current ? 'selected' : ''}>${t}</option>`).join('')
+  }
+  makeOptions('new-team1')
+  makeOptions('new-team2')
 }
 
 function toggleGroupField() {
   const stage = document.getElementById('new-stage').value
   document.getElementById('group-field-row').style.display = stage === 'Group' ? 'flex' : 'none'
+  rebuildTeamDropdowns()
 }
 
 async function login() {
@@ -599,12 +671,12 @@ async function submitNewFixture() {
   const num = document.getElementById('new-num').value
   const stage = document.getElementById('new-stage').value
   const group = stage === 'Group' ? document.getElementById('new-group').value : null
-  const team1 = document.getElementById('new-team1').value.trim()
-  const team2 = document.getElementById('new-team2').value.trim()
+  const team1 = document.getElementById('new-team1').value
+  const team2 = document.getElementById('new-team2').value
   const kickoffLocal = document.getElementById('new-kickoff').value
   // Convert Amsterdam time (CEST = UTC+2) to UTC
   const amsterdamOffsetMs = 2 * 60 * 60 * 1000
-  const kickoffUtc = new Date(new Date(kickoffLocal).getTime()).toISOString().slice(0, 19)
+  const kickoffUtc = new Date(new Date(kickoffLocal).getTime() - amsterdamOffsetMs).toISOString().slice(0, 19)
 
   if (!tid) { showToast('Select a tournament first', true); return }
   if (!num || !stage || !team1 || !team2 || !kickoffLocal) { showToast('Fill in all fields', true); return }
@@ -641,6 +713,8 @@ async function submitNewFixture() {
   }
 }
 
+let editingFixtureId = null
+
 function renderKOFixtures() {
   const tbody = document.getElementById('ko-fixture-tbody')
   tbody.innerHTML = ''
@@ -649,7 +723,7 @@ function renderKOFixtures() {
     .sort((a, b) => parseInt(a.fixture_number) - parseInt(b.fixture_number))
 
   if (koFixtures.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="color:#555">No KO fixtures added yet</td></tr>'
+    tbody.innerHTML = '<tr><td colspan="5" style="color:#555">No KO fixtures added yet</td></tr>'
     return
   }
 
@@ -658,14 +732,272 @@ function renderKOFixtures() {
       timeZone: 'Europe/Amsterdam', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
     })
     const tr = document.createElement('tr')
-    tr.innerHTML = `
-      <td>${f.fixture_number}</td>
-      <td><span class="tag tag-ko">${f.stage}</span></td>
-      <td class="kickoff">${kickoff}</td>
-      <td>${f.team_1} vs ${f.team_2}</td>
-    `
+    tr.id = `ko-row-${f.id}`
+
+    if (editingFixtureId === f.id) {
+      // Inline edit row
+      const kickoffUtcRaw = f.fixture_time.slice(0, 16) // YYYY-MM-DDTHH:MM
+      tr.innerHTML = `
+        <td><input type="text" id="edit-num-${f.id}" value="${f.fixture_number}" style="width:70px;margin:0"/></td>
+        <td>
+          <select id="edit-stage-${f.id}" style="margin:0">
+            ${['R32','R16','QF','SF','F'].map(s => `<option value="${s}" ${f.stage===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </td>
+        <td>
+          <input type="text" id="edit-team1-${f.id}" value="${f.team_1}" style="margin:0"/>
+          <input type="text" id="edit-team2-${f.id}" value="${f.team_2}" style="margin:0;margin-top:4px"/>
+        </td>
+        <td><input type="datetime-local" id="edit-kickoff-${f.id}" value="${kickoffUtcRaw}" style="margin:0"/></td>
+        <td style="white-space:nowrap">
+          <button class="btn-sm btn-success" onclick="saveEditFixture(${f.id}, ${getTournamentId()})">Save</button>
+          <button class="btn-sm" onclick="cancelEdit()" style="margin-left:4px">Cancel</button>
+        </td>
+      `
+    } else {
+      tr.innerHTML = `
+        <td>${f.fixture_number}</td>
+        <td><span class="tag tag-ko">${f.stage}</span></td>
+        <td>${f.team_1} vs ${f.team_2}</td>
+        <td class="kickoff">${kickoff}</td>
+        <td style="white-space:nowrap">
+          <button class="btn-sm" onclick="startEdit(${f.id})">Edit</button>
+          <button class="btn-sm btn-danger" onclick="deleteFixture(${f.id}, ${getTournamentId()})" style="margin-left:4px">Delete</button>
+        </td>
+      `
+    }
     tbody.appendChild(tr)
   })
+}
+
+function startEdit(fixtureId) {
+  editingFixtureId = fixtureId
+  renderKOFixtures()
+}
+
+function cancelEdit() {
+  editingFixtureId = null
+  renderKOFixtures()
+}
+
+async function saveEditFixture(fixtureId, tournamentId) {
+  const num = document.getElementById(`edit-num-${fixtureId}`).value
+  const stage = document.getElementById(`edit-stage-${fixtureId}`).value
+  const team1 = document.getElementById(`edit-team1-${fixtureId}`).value.trim()
+  const team2 = document.getElementById(`edit-team2-${fixtureId}`).value.trim()
+  const kickoffLocal = document.getElementById(`edit-kickoff-${fixtureId}`).value
+
+  if (!num || !stage || !team1 || !team2 || !kickoffLocal) {
+    showToast('Fill in all fields', true); return
+  }
+
+  // Update team names and kickoff via update endpoint
+  const res = await fetch(`${API}/tournaments/${tournamentId}/fixtures/${fixtureId}/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      team_1: team1,
+      team_2: team2,
+      fixture_time: kickoffLocal + ':00'
+    })
+  })
+
+  if (res.ok) {
+    showToast(`Fixture updated: ${team1} vs ${team2}`)
+    editingFixtureId = null
+    fixtures = []
+    results = {}
+    document.getElementById('filter-group').innerHTML = '<option value="">All groups</option>'
+    await loadFixtures()
+    renderKOFixtures()
+  } else {
+    const data = await res.json()
+    showToast(data.detail || 'Error updating fixture', true)
+  }
+}
+
+async function deleteFixture(fixtureId, tournamentId) {
+  if (!confirm('Delete this fixture? This also deletes all predictions and results for it.')) return
+
+  const res = await fetch(`${API}/tournaments/${tournamentId}/fixtures/${fixtureId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` }
+  })
+
+  if (res.ok) {
+    showToast('Fixture deleted')
+    fixtures = []
+    results = {}
+    document.getElementById('filter-group').innerHTML = '<option value="">All groups</option>'
+    await loadFixtures()
+    renderKOFixtures()
+  } else {
+    const data = await res.json()
+    showToast(data.detail || 'Error deleting fixture', true)
+  }
+}
+
+
+const BRACKET_STAGE_ORDER = ['R32', 'R16', 'QF', 'SF', 'F']
+const BRACKET_STAGE_LABELS = { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-finals', SF: 'Semi-finals', F: 'Final' }
+
+let bracketEditing = {} // fixtureId -> bool
+
+function getKOTeamsForStage(stage) {
+  const idx = BRACKET_STAGE_ORDER.indexOf(stage)
+  if (idx <= 0) return ALL_TEAMS // R32 or unknown -> all teams
+  const prev = BRACKET_STAGE_ORDER[idx - 1]
+  const prevFixtures = fixtures.filter(f => f.stage === prev)
+  if (prevFixtures.length === 0) return ALL_TEAMS
+  const teams = new Set()
+  prevFixtures.forEach(f => {
+    if (f.team_1 && f.team_1 !== 'TBD') teams.add(f.team_1)
+    if (f.team_2 && f.team_2 !== 'TBD') teams.add(f.team_2)
+  })
+  return [...teams].sort()
+}
+
+function renderAdminBracket() {
+  const koFixtures = fixtures.filter(f => f.stage !== 'Group')
+  const bracket = document.getElementById('admin-bracket')
+  bracket.innerHTML = ''
+
+  if (koFixtures.length === 0) {
+    bracket.innerHTML = '<p style="color:#555;font-size:0.85rem">No KO fixtures yet. Add them using the Add Fixture tab first.</p>'
+    return
+  }
+
+  // Determine entry stage
+  const stagesPresent = BRACKET_STAGE_ORDER.filter(s => koFixtures.some(f => f.stage === s))
+  const entryIdx = BRACKET_STAGE_ORDER.indexOf(stagesPresent[0])
+  const stages = BRACKET_STAGE_ORDER.slice(entryIdx)
+
+  // Group fixtures by stage, sorted by fixture_number
+  const byStage = {}
+  stages.forEach(s => {
+    byStage[s] = koFixtures
+      .filter(f => f.stage === s)
+      .sort((a, b) => {
+        const na = parseInt(String(a.fixture_number).replace(/\D/g, '')) || 0
+        const nb = parseInt(String(b.fixture_number).replace(/\D/g, '')) || 0
+        return na - nb
+      })
+  })
+
+  stages.forEach((stage, stageIdx) => {
+    const col = document.createElement('div')
+    col.className = 'bracket-col'
+
+    const header = document.createElement('div')
+    header.className = 'bracket-col-header'
+    header.textContent = BRACKET_STAGE_LABELS[stage] || stage
+    col.appendChild(header)
+
+    const totalSlots = Math.pow(2, stages.length - 1 - stageIdx)
+    const stageFixtures = byStage[stage] || []
+    const cardHeight = 130
+    const pairSize = Math.pow(2, stageIdx)
+
+    for (let i = 0; i < totalSlots; i++) {
+      const fixture = stageFixtures[i] || null
+      const wrapper = document.createElement('div')
+      const topPad = i === 0 ? (pairSize - 1) * (cardHeight / 2) : pairSize * cardHeight - cardHeight
+      wrapper.style.marginTop = i === 0 ? topPad + 'px' : topPad + 'px'
+
+      if (fixture) {
+        wrapper.appendChild(buildBracketSlot(fixture, stage))
+      } else {
+        const tbd = document.createElement('div')
+        tbd.className = 'bracket-slot-tbd'
+        tbd.style.height = cardHeight + 'px'
+        tbd.style.display = 'flex'
+        tbd.style.alignItems = 'center'
+        tbd.style.justifyContent = 'center'
+        tbd.textContent = 'TBD'
+        wrapper.appendChild(tbd)
+      }
+      col.appendChild(wrapper)
+    }
+
+    bracket.appendChild(col)
+  })
+}
+
+function buildBracketSlot(fixture, stage) {
+  const slot = document.createElement('div')
+  slot.className = 'bracket-slot has-fixture'
+  slot.id = `bslot-${fixture.id}`
+
+  const isEditing = bracketEditing[fixture.id]
+  const kickoffAms = fixture.fixture_time
+    ? new Date(fixture.fixture_time + 'Z').toLocaleString('nl-NL', { timeZone: 'Europe/Amsterdam', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    : ''
+  const kickoffRaw = fixture.fixture_time ? fixture.fixture_time.slice(0, 16) : ''
+  const teams = getKOTeamsForStage(stage)
+  const makeOpts = (selected) => `<option value="">TBD</option>` + teams.map(t => `<option value="${t}" ${t === selected ? 'selected' : ''}>${t}</option>`).join('')
+
+  slot.innerHTML = `
+    <div class="bracket-num">${fixture.fixture_number}</div>
+    ${isEditing ? `
+      <div class="bracket-team-row">
+        <select id="bs-t1-${fixture.id}">${makeOpts(fixture.team_1)}</select>
+      </div>
+      <div class="bracket-team-row">
+        <select id="bs-t2-${fixture.id}">${makeOpts(fixture.team_2)}</select>
+      </div>
+      <div class="bracket-kickoff">
+        <input type="datetime-local" id="bs-ko-${fixture.id}" value="${kickoffRaw}" style="width:100%"/>
+      </div>
+      <div class="bracket-actions">
+        <button class="btn-sm btn-success" onclick="saveBracketSlot(${fixture.id}, ${getTournamentId()})">Save</button>
+        <button class="btn-sm" onclick="cancelBracketEdit(${fixture.id})">Cancel</button>
+      </div>
+    ` : `
+      <div class="bracket-team-row"><span class="bracket-team">${fixture.team_1 || 'TBD'}</span></div>
+      <div class="bracket-team-row"><span class="bracket-team">${fixture.team_2 || 'TBD'}</span></div>
+      <div class="bracket-kickoff">${kickoffAms || '—'}</div>
+      <div class="bracket-actions">
+        <button class="btn-sm" onclick="startBracketEdit(${fixture.id})">Edit</button>
+      </div>
+    `}
+  `
+  return slot
+}
+
+function startBracketEdit(fixtureId) {
+  bracketEditing[fixtureId] = true
+  renderAdminBracket()
+}
+
+function cancelBracketEdit(fixtureId) {
+  delete bracketEditing[fixtureId]
+  renderAdminBracket()
+}
+
+async function saveBracketSlot(fixtureId, tournamentId) {
+  const team1 = document.getElementById(`bs-t1-${fixtureId}`).value
+  const team2 = document.getElementById(`bs-t2-${fixtureId}`).value
+  const kickoff = document.getElementById(`bs-ko-${fixtureId}`).value
+
+  if (!team1 || !team2 || !kickoff) { showToast('Fill in all fields', true); return }
+
+  const res = await fetch(`${API}/tournaments/${tournamentId}/fixtures/${fixtureId}/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ team_1: team1, team_2: team2, fixture_time: kickoff + ':00' })
+  })
+
+  if (res.ok) {
+    showToast(`${team1} vs ${team2} saved`)
+    delete bracketEditing[fixtureId]
+    fixtures = []; results = {}
+    document.getElementById('filter-group').innerHTML = '<option value="">All groups</option>'
+    await loadFixtures()
+    renderAdminBracket()
+  } else {
+    const data = await res.json()
+    showToast(data.detail || 'Error saving', true)
+  }
 }
 
 function showToast(msg, isError = false) {

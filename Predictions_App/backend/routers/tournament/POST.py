@@ -83,8 +83,7 @@ def update_fixture(
     if not fixture:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fixture not found")
 
-    if fixture.fixture_time.replace(tzinfo=timezone.utc) <= datetime.now(timezone.utc):
-        return "You're about to update a match that has already kicked off."
+    # Note: no kickoff lock on updates — admins can update fixtures at any time
 
     if updates.team_1 is not None:
         fixture.team_1 = updates.team_1
@@ -186,3 +185,30 @@ def save_group_results(
 
     db.commit()
     return {"message": f"Group {group_id} results saved"}
+
+
+#==Delete Fixture==#
+
+@router.delete("/tournaments/{tournament_id}/fixtures/{fixture_id}")
+def delete_fixture(
+    tournament_id: int,
+    fixture_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admins only")
+
+    fixture = db.query(Fixture).filter(
+        Fixture.id == fixture_id,
+        Fixture.tournament_id == tournament_id
+    ).first()
+    if not fixture:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fixture not found")
+
+    from models.models import FixturePrediction
+    db.query(FixturePrediction).filter(FixturePrediction.fixture_id == fixture_id).delete()
+    db.query(Results).filter(Results.fixture_id == fixture_id).delete()
+    db.delete(fixture)
+    db.commit()
+    return {"message": f"Fixture {fixture_id} deleted"}

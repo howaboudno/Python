@@ -4,8 +4,9 @@ import { AuthContext } from '../utils/store'
 import { API_URL } from '../api'
 
 const TOURNAMENT_ID = 1
-
 const STAGE_LABELS = { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-finals', SF: 'Semi-finals', F: 'Final' }
+const STAGE_ORDER = ['R32', 'R16', 'QF', 'SF', 'F']
+const parseScore = v => v === '' || v === undefined ? 0 : parseInt(v)
 
 function NumInput({ value, onChange, disabled, placeholder }) {
   return (
@@ -27,14 +28,12 @@ function Fixtures() {
   const [predictions, setPredictions] = useState({})
   const [saved, setSaved] = useState({})
   const [loading, setLoading] = useState(true)
-  const [showGroups, setShowGroups] = useState(true)
+  const [activeTab, setActiveTab] = useState('group')
   const [saving, setSaving] = useState(false)
-  const [saveStatus, setSaveStatus] = useState(null) // 'success' | 'error' | null
-
-  // Tooltip / other-predictions state
+  const [saveStatus, setSaveStatus] = useState(null)
   const [openTooltipId, setOpenTooltipId] = useState(null)
-  const [othersCache, setOthersCache] = useState({}) // fixtureId -> array of predictions
-  const [othersLoading, setOthersLoading] = useState(null) // fixtureId currently loading
+  const [othersCache, setOthersCache] = useState({})
+  const [othersLoading, setOthersLoading] = useState(null)
 
   useEffect(() => {
     fetch(`${API_URL}/tournaments/${TOURNAMENT_ID}/fixtures`, {
@@ -42,10 +41,7 @@ function Fixtures() {
     })
       .then(res => res.json())
       .then(data => {
-        const all = data.results || []
-        setFixtures(all)
-        const hasStartedKO = all.some(f => f.stage !== 'Group' && new Date(f.fixture_time + 'Z') < new Date())
-        if (hasStartedKO) setShowGroups(false)
+        setFixtures(data.results || [])
         setLoading(false)
       })
 
@@ -78,24 +74,17 @@ function Fixtures() {
   function formatKickoff(fixtureTime) {
     return new Date(fixtureTime + 'Z').toLocaleString('nl-NL', {
       timeZone: 'Europe/Amsterdam',
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
     })
   }
 
   function handleChange(fixtureId, field, value) {
-    setPredictions(prev => ({
-      ...prev,
-      [fixtureId]: { ...prev[fixtureId], [field]: value }
-    }))
+    setPredictions(prev => ({ ...prev, [fixtureId]: { ...prev[fixtureId], [field]: value } }))
     setSaved(prev => ({ ...prev, [fixtureId]: false }))
   }
 
   function handleSave(fixtureId) {
     const p = predictions[fixtureId] || {}
-    const parseScore = (v) => v === '' || v === undefined ? 0 : parseInt(v)
     fetch(`${API_URL}/predictions/fixture`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
@@ -112,18 +101,15 @@ function Fixtures() {
       .catch(err => console.error('Error saving prediction:', err))
   }
 
-  async function handleSaveAll() {
-    const toSave = fixtures.filter(f => !isLocked(f.fixture_time))
-
+  async function handleSaveAll(fixtureList) {
+    const toSave = fixtureList.filter(f => !isLocked(f.fixture_time))
     if (toSave.length === 0) return
-
     setSaving(true)
     setSaveStatus(null)
-
     try {
       await Promise.all(toSave.map(f => {
         const p = predictions[f.id] || {}
-        const parseScore = (v) => v === '' || v === undefined ? 0 : parseInt(v)
+        const parseScore = v => v === '' || v === undefined ? 0 : parseInt(v)
         return fetch(`${API_URL}/predictions/fixture`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
@@ -136,13 +122,11 @@ function Fixtures() {
           })
         })
       }))
-
       const newSaved = {}
       toSave.forEach(f => { newSaved[f.id] = true })
       setSaved(prev => ({ ...prev, ...newSaved }))
       setSaveStatus('success')
     } catch (err) {
-      console.error('Error saving all predictions:', err)
       setSaveStatus('error')
     } finally {
       setSaving(false)
@@ -151,78 +135,114 @@ function Fixtures() {
   }
 
   function toggleTooltip(fixtureId) {
-    if (openTooltipId === fixtureId) {
-      setOpenTooltipId(null)
-      return
-    }
+    if (openTooltipId === fixtureId) { setOpenTooltipId(null); return }
     setOpenTooltipId(fixtureId)
-
-    // Fetch (and cache) other predictions for this fixture if not already loaded
     if (!othersCache[fixtureId]) {
       setOthersLoading(fixtureId)
       fetch(`${API_URL}/tournaments/${TOURNAMENT_ID}/fixtures/${fixtureId}/all-predictions`, {
         headers: { Authorization: `Bearer ${authToken}` }
       })
         .then(res => res.json())
-        .then(data => {
-          setOthersCache(prev => ({ ...prev, [fixtureId]: data.results || [] }))
-        })
+        .then(data => setOthersCache(prev => ({ ...prev, [fixtureId]: data.results || [] })))
         .catch(err => console.error('Error loading other predictions:', err))
         .finally(() => setOthersLoading(null))
     }
   }
 
-  const hasKOFixtures = fixtures.some(f => f.stage !== 'Group')
+  // ── Shared fixture card renderer (used in both tabs) ──
+  function renderFixtureCard(fixture, opts = {}) {
+    const fid = fixture.id
+    const locked = isLocked(fixture.fixture_time)
+    const isKO = fixture.stage !== 'Group'
+    const p = predictions[fid] || {}
+    const s1 = p.score1 === '' || p.score1 === undefined ? '0' : p.score1
+    const s2 = p.score2 === '' || p.score2 === undefined ? '0' : p.score2
+    const isDraw = isKO && s1 === s2
+    const isSaved = saved[fid]
+    const tooltipOpen = openTooltipId === fid
+    const othersData = othersCache[fid]
+    const isOthersLoading = othersLoading === fid
 
-  const unsavedCount = fixtures.filter(f => {
-    if (isLocked(f.fixture_time)) return false
-    const p = predictions[f.id] || {}
-    return !saved[f.id]
-  }).length
-
-  const sorted = [...fixtures]
-    .filter(f => showGroups || f.stage !== 'Group')
-    .sort((a, b) => new Date(a.fixture_time) - new Date(b.fixture_time))
-
-  const sections = []
-  let currentStage = null
-  sorted.forEach(f => {
-    const sectionKey = f.stage === 'Group' ? 'Group' : f.stage
-    if (sectionKey !== currentStage) {
-      currentStage = sectionKey
-      sections.push({ key: sectionKey, fixtures: [] })
-    }
-    sections[sections.length - 1].fixtures.push(f)
-  })
-
-  if (loading) return <p className="loading">Loading fixtures...</p>
-
-  return (
-    <div className="page">
-      <h1>📋 Match Predictions</h1>
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-        {hasKOFixtures ? (
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', color: '#888' }}>
-            <input
-              type="checkbox"
-              checked={showGroups}
-              onChange={e => setShowGroups(e.target.checked)}
-              style={{ width: 'auto', margin: 0 }}
-            />
-            Show group stage matches
-          </label>
-        ) : <div />}
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {saveStatus === 'success' && (
-            <span style={{ fontSize: '0.82rem', color: 'var(--green)' }}>✓ All saved</span>
-          )}
-          {saveStatus === 'error' && (
-            <span style={{ fontSize: '0.82rem', color: '#f44336' }}>Error saving</span>
-          )}
+    return (
+      <div key={fid} className={`fixture-card ${isSaved ? 'saved' : ''} ${locked ? 'locked' : ''}`} style={{ position: 'relative', ...(opts.style || {}) }}>
+        <div className="fixture-teams">
+          <span className="team">{fixture.team_1 || 'TBD'}</span>
+          <div className="score-inputs">
+            <NumInput value={p.score1 ?? ''} disabled={locked} onChange={val => handleChange(fid, 'score1', val)} />
+            <span>-</span>
+            <NumInput value={p.score2 ?? ''} disabled={locked} onChange={val => handleChange(fid, 'score2', val)} />
+          </div>
+          <span className="team">{fixture.team_2 || 'TBD'}</span>
           <button
-            onClick={handleSaveAll}
+            onClick={() => toggleTooltip(fid)}
+            title="See everyone's predictions"
+            style={{ background: 'none', border: 'none', color: tooltipOpen ? 'var(--accent-light)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.95rem', padding: '2px 4px', lineHeight: 1 }}
+          >👥</button>
+        </div>
+
+        {tooltipOpen && (
+          <div style={{ marginTop: '6px', padding: '8px 10px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '0.8rem' }}>
+            {isOthersLoading && <span style={{ color: 'var(--text-muted)' }}>Loading...</span>}
+            {!isOthersLoading && othersData && othersData.length === 0 && <span style={{ color: 'var(--text-muted)' }}>No predictions yet</span>}
+            {!isOthersLoading && othersData && othersData.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {othersData.slice().sort((a, b) => a.username.localeCompare(b.username)).map(pred => (
+                  <div key={pred.username} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{pred.username}</span>
+                    <span>
+                      {pred.predicted_score_1}-{pred.predicted_score_2}
+                      {pred.predicted_pen_score_1 != null && (
+                        <span style={{ color: 'var(--text-muted)' }}> (pen {pred.predicted_pen_score_1}-{pred.predicted_pen_score_2})</span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {isDraw && !locked && (
+          <div className="penalty-inputs">
+            <span>Penalties:</span>
+            <NumInput value={p.pen1 ?? ''} placeholder="PK" onChange={val => handleChange(fid, 'pen1', val)} />
+            <span>-</span>
+            <NumInput value={p.pen2 ?? ''} placeholder="PK" onChange={val => handleChange(fid, 'pen2', val)} />
+          </div>
+        )}
+
+        <div className="fixture-footer">
+          <span className="kickoff">
+            {isKO && <span style={{ color: '#ffb74d', marginRight: '6px', fontSize: '0.75rem', fontWeight: 600 }}>{fixture.stage}</span>}
+            {!isKO && <span style={{ color: 'var(--accent-light)', marginRight: '6px', fontSize: '0.75rem' }}>Gr. {fixture.group}</span>}
+            {formatKickoff(fixture.fixture_time)}
+          </span>
+          {locked
+            ? <span className="locked-label">🔒 Locked</span>
+            : <button onClick={() => handleSave(fid)} className={isSaved ? 'btn-saved' : 'btn-save'}>
+                {isSaved ? '✓ Saved' : 'Save'}
+              </button>
+          }
+        </div>
+      </div>
+    )
+  }
+
+  // ── Group stage tab ──
+  function renderGroupTab() {
+    const groupFixtures = [...fixtures]
+      .filter(f => f.stage === 'Group')
+      .sort((a, b) => new Date(a.fixture_time) - new Date(b.fixture_time))
+
+    const unsavedCount = groupFixtures.filter(f => !isLocked(f.fixture_time) && !saved[f.id]).length
+
+    return (
+      <>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px', gap: '10px', alignItems: 'center' }}>
+          {saveStatus === 'success' && <span style={{ fontSize: '0.82rem', color: 'var(--green)' }}>✓ All saved</span>}
+          {saveStatus === 'error' && <span style={{ fontSize: '0.82rem', color: '#f44336' }}>Error saving</span>}
+          <button
+            onClick={() => handleSaveAll(groupFixtures)}
             disabled={saving || unsavedCount === 0}
             className="btn-save"
             style={{ padding: '6px 16px', fontSize: '0.85rem' }}
@@ -230,133 +250,149 @@ function Fixtures() {
             {saving ? 'Saving...' : unsavedCount > 0 ? `Save all (${unsavedCount})` : '✓ All saved'}
           </button>
         </div>
+        <div className="fixture-section">
+          {groupFixtures.map(f => renderFixtureCard(f))}
+        </div>
+      </>
+    )
+  }
+
+  // ── KO bracket tab ──
+  function renderBracketTab() {
+    const koFixtures = fixtures.filter(f => f.stage !== 'Group')
+    if (koFixtures.length === 0) {
+      return <p style={{ color: 'var(--text-muted)', marginTop: '24px', textAlign: 'center' }}>No knockout fixtures available yet.</p>
+    }
+
+    // Determine entry stage (earliest KO stage present)
+    const stagesPresent = STAGE_ORDER.filter(s => koFixtures.some(f => f.stage === s))
+    const entryStageIdx = STAGE_ORDER.indexOf(stagesPresent[0])
+    const stages = STAGE_ORDER.slice(entryStageIdx)
+
+    // Group and sort fixtures per stage
+    const byStage = {}
+    stages.forEach(s => {
+      byStage[s] = koFixtures
+        .filter(f => f.stage === s)
+        .sort((a, b) => {
+          // Sort by numeric suffix in fixture_number (e.g. "R32-3" → 3)
+          const numA = parseInt(String(a.fixture_number).replace(/\D/g, '')) || 0
+          const numB = parseInt(String(b.fixture_number).replace(/\D/g, '')) || 0
+          return numA - numB
+        })
+    })
+
+    const unsavedKO = koFixtures.filter(f => !isLocked(f.fixture_time) && !saved[f.id]).length
+
+    return (
+      <>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px', gap: '10px', alignItems: 'center' }}>
+          {saveStatus === 'success' && <span style={{ fontSize: '0.82rem', color: 'var(--green)' }}>✓ All saved</span>}
+          {saveStatus === 'error' && <span style={{ fontSize: '0.82rem', color: '#f44336' }}>Error saving</span>}
+          <button
+            onClick={() => handleSaveAll(koFixtures)}
+            disabled={saving || unsavedKO === 0}
+            className="btn-save"
+            style={{ padding: '6px 16px', fontSize: '0.85rem' }}
+          >
+            {saving ? 'Saving...' : unsavedKO > 0 ? `Save all (${unsavedKO})` : '✓ All saved'}
+          </button>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', minWidth: 'max-content', paddingBottom: '16px' }}>
+            {stages.map((stage, stageIdx) => {
+              const stageFixtures = byStage[stage] || []
+              const totalSlots = Math.pow(2, stages.length - 1 - stageIdx)
+              const slots = Array.from({ length: totalSlots }, (_, i) => stageFixtures[i] || null)
+
+              return (
+                <div key={stage} style={{ display: 'flex', flexDirection: 'column', gap: '0', flex: '0 0 220px' }}>
+                  {/* Stage header */}
+                  <div style={{
+                    fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase',
+                    letterSpacing: '0.06em', color: '#ffb74d',
+                    textAlign: 'center', marginBottom: '8px', paddingBottom: '6px',
+                    borderBottom: '1px solid var(--border)'
+                  }}>
+                    {STAGE_LABELS[stage] || stage}
+                  </div>
+
+                  {/* Match slots with vertical spacing to visually align with bracket */}
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {slots.map((fixture, slotIdx) => {
+                      // Calculate vertical spacing to align bracket pairs
+                      const pairSize = Math.pow(2, stageIdx)
+                      const cardHeight = 120 // approximate card height px
+                      const gapBetweenPairs = pairSize * cardHeight
+                      const topPadding = slotIdx === 0 ? (pairSize - 1) * (cardHeight / 2) : 0
+                      const marginTop = slotIdx === 0 ? topPadding : gapBetweenPairs - cardHeight
+
+                      return (
+                        <div key={slotIdx} style={{ marginTop: slotIdx === 0 ? topPadding : gapBetweenPairs - cardHeight }}>
+                          {fixture
+                            ? renderFixtureCard(fixture, { style: { marginBottom: 0, width: '220px' } })
+                            : (
+                              <div style={{
+                                background: 'var(--surface)', border: '1px dashed var(--border)',
+                                borderRadius: '6px', padding: '12px 16px', width: '220px',
+                                color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center'
+                              }}>
+                                TBD
+                              </div>
+                            )
+                          }
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  const hasKO = fixtures.some(f => f.stage !== 'Group')
+
+  if (loading) return <p className="loading">Loading fixtures...</p>
+
+  return (
+    <div className="page">
+      <h1>📋 Match Predictions</h1>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        <button
+          onClick={() => setActiveTab('group')}
+          style={{
+            padding: '7px 18px', fontSize: '0.85rem', borderRadius: '6px', border: 'none', cursor: 'pointer',
+            background: activeTab === 'group' ? 'var(--accent)' : 'var(--surface)',
+            color: activeTab === 'group' ? '#fff' : 'var(--text-muted)',
+            outline: activeTab === 'group' ? 'none' : '1px solid var(--border)'
+          }}
+        >
+          Group Stage
+        </button>
+        {hasKO && (
+          <button
+            onClick={() => setActiveTab('bracket')}
+            style={{
+              padding: '7px 18px', fontSize: '0.85rem', borderRadius: '6px', border: 'none', cursor: 'pointer',
+              background: activeTab === 'bracket' ? '#ffb74d' : 'var(--surface)',
+              color: activeTab === 'bracket' ? '#000' : 'var(--text-muted)',
+              outline: activeTab === 'bracket' ? 'none' : '1px solid var(--border)'
+            }}
+          >
+            Knockout Bracket
+          </button>
+        )}
       </div>
 
-      {sections.map((section, idx) => (
-        <div key={section.key} className="fixture-section">
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '10px',
-            margin: idx === 0 ? '0 0 12px' : '16px 0 12px',
-            color: section.key === 'Group' ? 'var(--accent-light)' : '#ffb74d'
-          }}>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {section.key === 'Group' ? 'Group Stage' : STAGE_LABELS[section.key] || section.key}
-            </span>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-          </div>
-
-          {section.fixtures.map(fixture => {
-            const fid = fixture.id
-            const locked = isLocked(fixture.fixture_time)
-            const isKO = fixture.stage !== 'Group'
-            const p = predictions[fid] || {}
-            const s1 = p.score1 === '' || p.score1 === undefined ? '0' : p.score1
-            const s2 = p.score2 === '' || p.score2 === undefined ? '0' : p.score2
-            const isDraw = isKO && s1 === s2
-            const isSaved = saved[fid]
-            const tooltipOpen = openTooltipId === fid
-            const othersData = othersCache[fid]
-            const isOthersLoading = othersLoading === fid
-
-            return (
-              <div key={fid} className={`fixture-card ${isSaved ? 'saved' : ''} ${locked ? 'locked' : ''}`} style={{ position: 'relative' }}>
-                <div className="fixture-teams">
-                  <span className="team">{fixture.team_1}</span>
-                  <div className="score-inputs">
-                    <NumInput
-                      value={p.score1 ?? ''}
-                      disabled={locked}
-                      onChange={val => handleChange(fid, 'score1', val)}
-                    />
-                    <span>-</span>
-                    <NumInput
-                      value={p.score2 ?? ''}
-                      disabled={locked}
-                      onChange={val => handleChange(fid, 'score2', val)}
-                    />
-                  </div>
-                  <span className="team">{fixture.team_2}</span>
-                  <button
-                    onClick={() => toggleTooltip(fid)}
-                    title="See everyone's predictions"
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: tooltipOpen ? 'var(--accent-light)' : 'var(--text-muted)',
-                      cursor: 'pointer',
-                      fontSize: '0.95rem',
-                      padding: '2px 4px',
-                      lineHeight: 1
-                    }}
-                  >
-                    👥
-                  </button>
-                </div>
-
-                {tooltipOpen && (
-                  <div style={{
-                    marginTop: '6px',
-                    padding: '8px 10px',
-                    background: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '6px',
-                    fontSize: '0.8rem'
-                  }}>
-                    {isOthersLoading && <span style={{ color: 'var(--text-muted)' }}>Loading predictions...</span>}
-                    {!isOthersLoading && othersData && othersData.length === 0 && (
-                      <span style={{ color: 'var(--text-muted)' }}>No predictions yet</span>
-                    )}
-                    {!isOthersLoading && othersData && othersData.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {othersData
-                          .slice()
-                          .sort((a, b) => a.username.localeCompare(b.username))
-                          .map(pred => (
-                            <div key={pred.username} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text)' }}>
-                              <span style={{ color: 'var(--text-muted)' }}>{pred.username}</span>
-                              <span>
-                                {pred.predicted_score_1}-{pred.predicted_score_2}
-                                {pred.predicted_pen_score_1 != null && (
-                                  <span style={{ color: 'var(--text-muted)' }}>
-                                    {' '}(pen {pred.predicted_pen_score_1}-{pred.predicted_pen_score_2})
-                                  </span>
-                                )}
-                              </span>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {isDraw && !locked && (
-                  <div className="penalty-inputs">
-                    <span>Penalties:</span>
-                    <NumInput value={p.pen1 ?? ''} placeholder="PK" onChange={val => handleChange(fid, 'pen1', val)} />
-                    <span>-</span>
-                    <NumInput value={p.pen2 ?? ''} placeholder="PK" onChange={val => handleChange(fid, 'pen2', val)} />
-                  </div>
-                )}
-
-                <div className="fixture-footer">
-                  <span className="kickoff">
-                    {isKO && <span style={{ color: '#ffb74d', marginRight: '6px', fontSize: '0.75rem', fontWeight: 600 }}>{fixture.stage}</span>}
-                    {!isKO && <span style={{ color: 'var(--accent-light)', marginRight: '6px', fontSize: '0.75rem' }}>Gr. {fixture.group}</span>}
-                    {formatKickoff(fixture.fixture_time)}
-                  </span>
-                  {locked
-                    ? <span className="locked-label">🔒 Locked</span>
-                    : <button onClick={() => handleSave(fid)} className={isSaved ? 'btn-saved' : 'btn-save'}>
-                        {isSaved ? '✓ Saved' : 'Save'}
-                      </button>
-                  }
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      ))}
+      {activeTab === 'group' && renderGroupTab()}
+      {activeTab === 'bracket' && renderBracketTab()}
     </div>
   )
 }
