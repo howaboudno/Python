@@ -257,6 +257,63 @@ function Fixtures() {
     )
   }
 
+  // ── Compact bracket card (used only in bracket tab) ──
+  function renderBracketCard(fixture) {
+    const fid = fixture.id
+    const locked = isLocked(fixture.fixture_time)
+    const p = predictions[fid] || {}
+    const s1 = p.score1 === '' || p.score1 === undefined ? '0' : p.score1
+    const s2 = p.score2 === '' || p.score2 === undefined ? '0' : p.score2
+    const isDraw = s1 === s2
+    const isSaved = saved[fid]
+
+    return (
+      <div style={{
+        background: 'var(--surface)',
+        border: `1px solid ${isSaved ? 'var(--green)' : 'var(--border)'}`,
+        borderRadius: '6px',
+        padding: '8px 10px',
+        width: '180px',
+        opacity: locked ? 0.6 : 1,
+        fontSize: '0.8rem'
+      }}>
+        {/* Team row 1 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+          <span style={{ flex: 1, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {fixture.team_1 || 'TBD'}
+          </span>
+          <div style={{ width: '32px', flexShrink: 0 }}><NumInput value={p.score1 ?? ''} disabled={locked} onChange={val => handleChange(fid, 'score1', val)} /></div>
+        </div>
+        {/* Team row 2 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+          <span style={{ flex: 1, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {fixture.team_2 || 'TBD'}
+          </span>
+          <div style={{ width: '32px', flexShrink: 0 }}><NumInput value={p.score2 ?? ''} disabled={locked} onChange={val => handleChange(fid, 'score2', val)} /></div>
+        </div>
+        {/* Penalties row */}
+        {isDraw && !locked && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+            <span>Pen:</span>
+            <NumInput value={p.pen1 ?? ''} placeholder="PK" onChange={val => handleChange(fid, 'pen1', val)} />
+            <span>-</span>
+            <NumInput value={p.pen2 ?? ''} placeholder="PK" onChange={val => handleChange(fid, 'pen2', val)} />
+          </div>
+        )}
+        {/* Footer */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{formatKickoff(fixture.fixture_time)}</span>
+          {locked
+            ? <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>🔒</span>
+            : <button onClick={() => handleSave(fid)} className={isSaved ? 'btn-saved' : 'btn-save'} style={{ padding: '2px 8px', fontSize: '0.72rem' }}>
+                {isSaved ? '✓' : 'Save'}
+              </button>
+          }
+        </div>
+      </div>
+    )
+  }
+
   // ── KO bracket tab ──
   function renderBracketTab() {
     const koFixtures = fixtures.filter(f => f.stage !== 'Group')
@@ -264,18 +321,15 @@ function Fixtures() {
       return <p style={{ color: 'var(--text-muted)', marginTop: '24px', textAlign: 'center' }}>No knockout fixtures available yet.</p>
     }
 
-    // Determine entry stage (earliest KO stage present)
     const stagesPresent = STAGE_ORDER.filter(s => koFixtures.some(f => f.stage === s))
     const entryStageIdx = STAGE_ORDER.indexOf(stagesPresent[0])
     const stages = STAGE_ORDER.slice(entryStageIdx)
 
-    // Group and sort fixtures per stage
     const byStage = {}
     stages.forEach(s => {
       byStage[s] = koFixtures
         .filter(f => f.stage === s)
         .sort((a, b) => {
-          // Sort by numeric suffix in fixture_number (e.g. "R32-3" → 3)
           const numA = parseInt(String(a.fixture_number).replace(/\D/g, '')) || 0
           const numB = parseInt(String(b.fixture_number).replace(/\D/g, '')) || 0
           return numA - numB
@@ -283,6 +337,8 @@ function Fixtures() {
     })
 
     const unsavedKO = koFixtures.filter(f => !isLocked(f.fixture_time) && !saved[f.id]).length
+    const CARD_H = 90 // compact card height in px
+    const COL_W = 180
 
     return (
       <>
@@ -300,46 +356,41 @@ function Fixtures() {
         </div>
 
         <div style={{ overflowX: 'auto' }}>
-          <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', minWidth: 'max-content', paddingBottom: '16px' }}>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', minWidth: 'max-content', paddingBottom: '16px' }}>
             {stages.map((stage, stageIdx) => {
               const stageFixtures = byStage[stage] || []
               const totalSlots = Math.pow(2, stages.length - 1 - stageIdx)
               const slots = Array.from({ length: totalSlots }, (_, i) => stageFixtures[i] || null)
+              const pairSize = Math.pow(2, stageIdx)
 
               return (
-                <div key={stage} style={{ display: 'flex', flexDirection: 'column', gap: '0', flex: '0 0 220px' }}>
-                  {/* Stage header */}
+                <div key={stage} style={{ display: 'flex', flexDirection: 'column', width: COL_W + 'px' }}>
                   <div style={{
-                    fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase',
+                    fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase',
                     letterSpacing: '0.06em', color: '#ffb74d',
-                    textAlign: 'center', marginBottom: '8px', paddingBottom: '6px',
+                    textAlign: 'center', marginBottom: '8px', paddingBottom: '4px',
                     borderBottom: '1px solid var(--border)'
                   }}>
                     {STAGE_LABELS[stage] || stage}
                   </div>
 
-                  {/* Match slots with vertical spacing to visually align with bracket */}
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {slots.map((fixture, slotIdx) => {
-                      // Calculate vertical spacing to align bracket pairs
-                      const pairSize = Math.pow(2, stageIdx)
-                      const cardHeight = 120 // approximate card height px
-                      const gapBetweenPairs = pairSize * cardHeight
-                      const topPadding = slotIdx === 0 ? (pairSize - 1) * (cardHeight / 2) : 0
-                      const marginTop = slotIdx === 0 ? topPadding : gapBetweenPairs - cardHeight
+                      const topMargin = slotIdx === 0
+                        ? (pairSize - 1) * (CARD_H / 2)
+                        : pairSize * CARD_H - CARD_H
 
                       return (
-                        <div key={slotIdx} style={{ marginTop: slotIdx === 0 ? topPadding : gapBetweenPairs - cardHeight }}>
+                        <div key={slotIdx} style={{ marginTop: topMargin + 'px' }}>
                           {fixture
-                            ? renderFixtureCard(fixture, { style: { marginBottom: 0, width: '220px' } })
+                            ? renderBracketCard(fixture)
                             : (
                               <div style={{
-                                background: 'var(--surface)', border: '1px dashed var(--border)',
-                                borderRadius: '6px', padding: '12px 16px', width: '220px',
-                                color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center'
-                              }}>
-                                TBD
-                              </div>
+                                background: 'var(--surface2)', border: '1px dashed var(--border)',
+                                borderRadius: '6px', height: CARD_H + 'px', width: COL_W + 'px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: 'var(--text-muted)', fontSize: '0.78rem'
+                              }}>TBD</div>
                             )
                           }
                         </div>

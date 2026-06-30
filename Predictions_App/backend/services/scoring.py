@@ -61,7 +61,10 @@ def score_ko_match(
         base_points = KO_STAGE_POINTS[s.stage]['gd']
     elif get_result(r.score_1, r.score_2) == get_result(p.predicted_score_1,p.predicted_score_2):
         base_points = KO_STAGE_POINTS[s.stage]['result']
-    if  r.pen_score_1 is not None and get_pen_result(r.pen_score_1, r.pen_score_2) == get_pen_result(p.predicted_pen_score_1, p.predicted_pen_score_2):
+    if (r.pen_score_1 is not None
+        and p.predicted_pen_score_1 is not None
+        and p.predicted_pen_score_2 is not None
+        and get_pen_result(r.pen_score_1, r.pen_score_2) == get_pen_result(p.predicted_pen_score_1, p.predicted_pen_score_2)):
         base_points += KO_STAGE_POINTS[s.stage]['penalty']
     return base_points
 
