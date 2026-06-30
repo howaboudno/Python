@@ -282,22 +282,22 @@ function Fixtures() {
           <span style={{ flex: 1, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {fixture.team_1 || 'TBD'}
           </span>
-          <div style={{ width: '32px', flexShrink: 0 }}><NumInput value={p.score1 ?? ''} disabled={locked} onChange={val => handleChange(fid, 'score1', val)} /></div>
+          <div className="bracket-input"><NumInput value={p.score1 ?? ''} disabled={locked} onChange={val => handleChange(fid, 'score1', val)} /></div>
         </div>
         {/* Team row 2 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
           <span style={{ flex: 1, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {fixture.team_2 || 'TBD'}
           </span>
-          <div style={{ width: '32px', flexShrink: 0 }}><NumInput value={p.score2 ?? ''} disabled={locked} onChange={val => handleChange(fid, 'score2', val)} /></div>
+          <div className="bracket-input"><NumInput value={p.score2 ?? ''} disabled={locked} onChange={val => handleChange(fid, 'score2', val)} /></div>
         </div>
         {/* Penalties row */}
         {isDraw && !locked && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
             <span>Pen:</span>
-            <NumInput value={p.pen1 ?? ''} placeholder="PK" onChange={val => handleChange(fid, 'pen1', val)} />
+            <div className="bracket-input"><NumInput value={p.pen1 ?? ''} placeholder="PK" onChange={val => handleChange(fid, 'pen1', val)} /></div>
             <span>-</span>
-            <NumInput value={p.pen2 ?? ''} placeholder="PK" onChange={val => handleChange(fid, 'pen2', val)} />
+            <div className="bracket-input"><NumInput value={p.pen2 ?? ''} placeholder="PK" onChange={val => handleChange(fid, 'pen2', val)} /></div>
           </div>
         )}
         {/* Footer */}

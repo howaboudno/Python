@@ -382,3 +382,10 @@ input::-webkit-inner-spin-button {
   color: var(--text);
   font-size: 0.82rem;
 }
+
+/* Bracket compact inputs — override global width: 100% */
+.bracket-input input {
+  width: 32px !important;
+  padding: 3px 4px;
+  text-align: center;
+}
